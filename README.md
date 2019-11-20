@@ -1,4 +1,4 @@
-# IT Clair
+# IT Clair System
 
 ## Project setup
 ```
