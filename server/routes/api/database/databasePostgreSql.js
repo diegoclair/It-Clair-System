@@ -1186,8 +1186,8 @@ module.exports = {
         return false;
       };
 
-    } catch (err) {
-      this.erro_message = `Erro 045: ${err}`;
+    } catch (error) {
+      this.erro_message = `Erro 045: ${error}`;
       console.log(this.erro_message);
       return this.erro_message;
     };
@@ -1197,30 +1197,24 @@ module.exports = {
     try {
       const resSelectParameters = await selectData('parameters');
       const path = resSelectParameters[0].folder_path.trim();
-      
       try {
-        const resSelectChamado = await selectData('chamado',['num_chamado'],[chamadoNumber]);
+        const chamado_value = chamadoNumber.replace('+','/');
+        const resSelectChamado = await selectData('chamado',['num_chamado'],[chamado_value]);
+
+        const chamado_path = chamadoNumber.replace('+','-');
         const title = await removeSpecialCharacters(resSelectChamado[0].titulo);
-        const full_path = `${path}${chamadoNumber} - ${title}`;
-        
-        /* //this module mkdirp work only at serverside
-        mkdirp(full_path, function(err) {
-          if (err) {
-            this.erro_message = `Erro 010: ${err}`;
-            console.log(this.erro_message);
-            return this.erro_message;
-          }
-        });  */
+        const full_path = `${path}${chamado_path} - ${title}`;
+
         return full_path;
         
-      } catch (err) {
-        this.erro_message = `Erro 009: ${err}`;
+      } catch (error) {
+        this.erro_message = `Erro 009: ${error}`;
         console.log(this.erro_message);
         return this.erro_message;
       }
       
-    } catch (err) {
-      this.erro_message = `Erro 008: ${err}`;
+    } catch (error) {
+      this.erro_message = `Erro 008: ${error}`;
       console.log(this.erro_message);
       return this.erro_message;
     }

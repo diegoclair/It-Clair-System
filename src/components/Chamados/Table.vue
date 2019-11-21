@@ -2126,7 +2126,8 @@
       },
       async createFolderCopyPath(chamado_number){
         /* Get the text field */
-        const resCreateFolder = await ChamadosService.createFolder(chamado_number)
+        const chamado_value = chamado_number.replace('/','+')
+        const resCreateFolder = await ChamadosService.createFolder(chamado_value)
         
         const message_type = resCreateFolder.indexOf('Erro ');
 
