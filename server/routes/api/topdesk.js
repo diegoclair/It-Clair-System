@@ -17,10 +17,8 @@ router.get("/", async (req, res) => {
 });
 
 //==========================================================================================================================//
-//a cada 3 minutos eu busco os chamados no topDesk e salvo no meu banco de dados
 setInterval(getChamadosTopDesk, 3*60000);
-
-setInterval(syncTopDesk, 40*60000);
+setInterval(syncTopDesk, 60*60000);
 setInterval(getActivities, 5*60000);
 
 getChamadosTopDesk();

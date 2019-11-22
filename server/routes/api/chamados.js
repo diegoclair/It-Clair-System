@@ -20,6 +20,7 @@ router.post("/", async (req, res) => {
     };
     
     const chamados = await databasePostgreSql.readAllData(data);
+
     if (chamados.indexOf('Erro') == 0 || chamados.indexOf('Alerta') == 0) {
         this.erro_message = `${chamados}`;
         console.log(this.erro_message);
@@ -43,8 +44,8 @@ router.post("/", async (req, res) => {
       };
     res.status(200).send(response);
 });
-router.get('/topdesk/:login_operator', async (req, res) => {
-    const chamado = await databasePostgreSql.syncDataTopDesk(req.params.login_operator);
+router.get('/topdesk/:login_operator/:chamado', async (req, res) => {
+    const chamado = await databasePostgreSql.syncDataTopDesk(req.params.login_operator, req.params.chamado);
     res.status(200).send(chamado);
 });
 

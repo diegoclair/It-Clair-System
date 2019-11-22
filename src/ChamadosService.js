@@ -100,13 +100,15 @@ class ChamadosService{
        }); 
     };
     //ESSE NÃO ESTÁ SENDO CHAMADO get data from a only one chamado
-    static syncDataTopDesk(login_operator) {
+    static syncDataTopDesk(login_operator, chamado) {
                 
         return new Promise (async (resolve, reject) => {
             let res = '';
             let resData = [];
+            const chamado_value = chamado.replace('/','+');
+            
             try {
-                res = await axios.get(`${urlChamados}/topdesk/${login_operator}`);           
+                res = await axios.get(`${urlChamados}/topdesk/${login_operator}/${chamado_value}`);           
                 resData.push(res.data);
                 
                 //aqui nós tentamos e se der certo, chamamos o resolve, se der errado, no catch, chamamos o reject

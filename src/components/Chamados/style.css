@@ -1,7 +1,12 @@
 select{
   -webkit-appearance: menulist
 }
-
+#input_syncTopdesk{
+  width: 120px;
+  height: 28px;
+  padding: 3px;
+  font-size: 15px;
+}
 .addTotvsGmudIcon{
     font-size: 23px; 
     margin-bottom: -2px; 

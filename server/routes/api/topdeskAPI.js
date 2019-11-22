@@ -244,7 +244,7 @@ module.exports = {
     if (data.num_chamado.trim().length == 11 || data.num_chamado.trim().length == 14) {
       //11 - incident ; 14 partial incident
       try {
-        const urlTopDesk = `${urlIncidents}/id/${data.id_chamado}`;
+        /* const urlTopDesk = `${urlIncidents}/id/${data.id_chamado}`;
         //axios.put(url[, data[, config]])
         const res = await axios.put(urlTopDesk, {
           "processingStatus" : { 
@@ -259,7 +259,7 @@ module.exports = {
           headers: {
             "Content-Type": "application/json"
           }
-        });
+        }); */
         return true;
       } catch (error) {
         this.erro_message = `Erro 057: ${error}`

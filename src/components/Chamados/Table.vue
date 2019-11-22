@@ -1,18 +1,13 @@
 <!--
   TODO
-  Toda vez que acessar um chamado que o status é fechado ou pelo solicitante, fazer a busca da avaliação no topdesk
-  caso esse campo de avaliação esteja em branco no chamado, se retornar a avaliação, mostrar no chamado.. 
-
-  De gmud e ticket não posso ler somente os abertos como os chamados, pois posso ter uma chamado aberto
-  com um ticket ou uma gmud já finalizada
-
-  Do texto acima, posso retornar apenas do operador logado
-
-  colocar data encerramento do ticket quando eu já for incluir um ticket fechado
+  Toda vez que acessar um chamado que o status é fechado ou fechado pelo solicitante, fazer a busca da avaliação no 
+  topdesk e atualizar no DB, também criar janela para mostrar esses campos de avaliação.. 
 
   criar a alteração do telefone/ramal do v-card do chamado
 
   criar demonstração na tabela expandida(principal) se aquele chamado tem ticket ou gmud
+
+  Criar props da função notification
 
 -->
 
@@ -30,16 +25,11 @@
               <h4>Meus Chamados</h4> 
               <v-spacer></v-spacer>
              <div v-if="tableWidht">
+               <input type="text" id="input_syncTopdesk" v-model="input_syncTopdesk">
                 <button 
                   @click.prevent.stop="syncDataTopDesk"
                   class="btn-sm btn-primary ml-4" 
-                ><i v-if="LoadSyncTopDesk" class="fas fa-sync fa-spin"></i> Sincronizar TopDesk</button>
-             </div>
-             <div v-if="!tableWidht">
-                <button 
-                  @click.prevent.stop="syncDataTopDesk"
-                  class="btn-sm btn-primary ml-4" 
-                ><i v-if="LoadSyncTopDesk" class="fas fa-sync fa-spin"></i> Sincroniza</button>
+                ><i v-if="LoadSyncTopDesk" class="fas fa-sync fa-spin"></i> Sincronizar TopDesk </button>
              </div>
             </div>
             <div v-if="initialLoad">
@@ -1389,6 +1379,7 @@
         tableExpanded: true,
         tableWidht : true,
         chamadoMoreInfo: '',
+        input_syncTopdesk: '',
         incluidoExcluidoGmud: false,
         incluidoExcluidoTotvs: false,
         incluidoExcluidoUBrasil: false,
@@ -1753,7 +1744,6 @@
             };
           };
 
-          //defini o data como false, se nao for false, preenchi ele acima
           if (data !== false) {
             try {
               const resUpdateStatus = await ChamadosService.updateStatusTicket(data);
@@ -2125,7 +2115,7 @@
 
       },
       async createFolderCopyPath(chamado_number){
-        /* Get the text field */
+
         const chamado_value = chamado_number.replace('/','+')
         const resCreateFolder = await ChamadosService.createFolder(chamado_value)
         
@@ -2250,16 +2240,25 @@
                   this.LoadUpdateStatus = false;
               };
             }else{
+              //esticar a tabela antes de destruir
+              
+              var expandido = false;
+              if (!this.tableExpanded) {
+                this.tableExpanded = !this.tableExpanded
+                this.tableWidht = !this.tableWidht
+                expandido = true;
+              };
+              $("#tableTickets").DataTable().destroy(); //to ajust datatable sort
+
               await this.getDataFromServer({  
                 table: 'chamado' ,closed: '', whereTable: '', 
                 whereField: '', whereValue:  '', sync: false, clearStorage: true
               });
-
-              $("#tableTickets").DataTable().destroy(); //to ajust datatable sort
+              
               await this.configDataTable();
               
-              $('#modalChangeStatus').modal('hide');            
-
+              $('#modalChangeStatus').modal('hide');
+              
               this.notification('Atualizado com sucesso','success');
             };
             
@@ -2324,7 +2323,7 @@
 
           //passar o operador que está fazendo a sincronização, se existir
           if (this.login_rede_user_logged !== null && this.login_rede_user_logged !== undefined) {
-            const res = await ChamadosService.syncDataTopDesk(this.login_rede_user_logged);
+            const res = await ChamadosService.syncDataTopDesk(this.login_rede_user_logged, this.input_syncTopdesk ? this.input_syncTopdesk : '0');
             if (res[0] !== true) {
               if (res[0].indexOf('Erro') == 0) {
                 this.notification(res[0]);

@@ -891,8 +891,9 @@ module.exports = {
     return operatorData[0]
   },
 
-  syncDataTopDesk: async function(operator_login){
+  syncDataTopDesk: async function(operator_login, chamado){
     let data;
+    var chamado_value = chamado;
 
     if (operator_login == 'automatic-sync') {
       //ler todos os chamados que estão abertos      
@@ -904,7 +905,17 @@ module.exports = {
         whereValue:  [], */
         sync: false,
       };
-    }else{      
+    }else if(chamado !== '0'){
+      //ler somente num_chamado encaminhado  
+      chamado_value = chamado.replace('+','/');
+      data = {
+        table: 'chamado',
+        closed: true,
+        whereTable: 'chamado',
+        whereField: ['num_chamado'],
+        whereValue: [chamado_value]
+      };
+    }else{
       //ler todos os chamados que estão abertos para um determinado operador
       data = {  
         table: 'chamado',
@@ -914,14 +925,24 @@ module.exports = {
         whereValue:  [operator_login],
         sync: false,
       };
-    }
+    };
     let resData = '', itarator = 0;
     try {
       resData = await this.readAllData(data);
-      const user = operator_login == 'automatic-sync' ? 'automatic-sync' : resData[0].o_login;
-      console.log('iniciei sync - ' + user);
+
+      const user = operator_login == 'automatic-sync' ? 'automatic-sync' : resData[0] ? resData[0].o_login : 'vazio';
+
+      let message = chamado_value !== '0' ? chamado_value : user;
+      let initialMessage = `iniciei sync - ${message}`;
+      let finalMessage = `terminei sync - ${message}`;
+      console.log(initialMessage);
       
-      if (resData[0] == null || resData.indexOf('Erro') == 0) {
+      
+      if (resData[0] == null) {
+        this.erro_message = `Erro 097 - : ${chamado_value ? `Chamado ${chamado_value} não encontrado` : 'Nenhum dado encontrado'}`;
+        console.log(this.erro_message);
+        return this.erro_message;
+      }else if (resData.indexOf('Erro') == 0) {
         return resData;
       }else{
         for (let i = 0; i < resData.length; i++) {
@@ -1023,13 +1044,13 @@ module.exports = {
           };
         };
 
-        console.log('terminei sync - ' + user);
+        console.log(finalMessage);
         
         //se tudo der certo acima, ele vai cair nesse return e retorno true
         return true;
       };
     } catch (error) {
-      this.erro_message = `Erro 053 - ${resData[itarator].num_chamado} : ${error}`;
+      this.erro_message = `Erro 053 - ${resData[itarator] ? resData[itarator].num_chamado : 'vazio'} : ${error}`;
       console.log(this.erro_message);
       return this.erro_message;
     };
