@@ -928,7 +928,7 @@ module.exports = {
     };
     let resData = '', itarator = 0;
     try {
-      resData = await this.readAllData(data);
+      resData = await this.readAllData(data);      
 
       const user = operator_login == 'automatic-sync' ? 'automatic-sync' : resData[0] ? resData[0].o_login : 'vazio';
 
@@ -1139,9 +1139,9 @@ module.exports = {
         this.erro_message = `Alerta 001: O ticket ${fieldValue.num_ticket} já existe para esse chamado ${fieldValue.num_chamado}.`;
         //console.log(this.erro_message);
         return this.erro_message;
-      }  
+      };
     };
-    
+   
     //TO CREATE GMUD
     if (table == 'gmud') {
       if (!await existePostgreSql(table, ['num_gmud','num_chamado'],[fieldValue.num_gmud,fieldValue.num_chamado])) {

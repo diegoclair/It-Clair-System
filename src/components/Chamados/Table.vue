@@ -2358,7 +2358,7 @@
             this.notification('Não há chamados para sincronizar','warn');
           };
         };
-        
+        this.input_syncTopdesk = '';
         this.LoadSyncTopDesk = false;
       },
       async getDataFromServer(data) {
