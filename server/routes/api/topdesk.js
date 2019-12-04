@@ -17,13 +17,13 @@ router.get("/", async (req, res) => {
 });
 
 //==========================================================================================================================//
-/* setInterval(getChamadosTopDesk, 3*60000);
-setInterval(syncTopDesk, 60*60000);
-setInterval(getActivities, 5*60000); */
+setInterval(getChamadosTopDesk, 3*60000);
+setInterval(syncTopDesk, 90*60000);
+setInterval(getActivities, 8*60000); 
 
-//getChamadosTopDesk();
+getChamadosTopDesk();
 //syncTopDesk();
-//getActivities();
+getActivities();
 
 async function getChamadosTopDesk() {
   //ler os 70 últimos chamados a cada 3 minutos
