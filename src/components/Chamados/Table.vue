@@ -1130,7 +1130,7 @@
                           </div>
                           <div class="col-2">
                             <input type="text" id="versao-totvs" 
-                              class="fields_moreInfo width_moreInfo" value="12.1.24">
+                              class="fields_moreInfo width_moreInfo" value="12.1.26">
                           </div>
                           <div class="col-3">
                             <label>Impede Atualização?</label>
@@ -1752,6 +1752,10 @@
               console.log(this.error);
               this.notification(this.error,'error','ERRO AO ALTERAR STATUS FORNECEDOR');
             };
+            console.log('passei aqui e coloquei false');
+            
+            
+            this.totvs_status_fechado = false; //quando fechava um ticket e ia pra outro, ele mostrava os campos de fechado
 
             this.totvs_status_change_icon = false
             this.uBrasil_status_change_icon = false
@@ -2203,10 +2207,15 @@
         this.chamadoMoreInfo = chamado_number;
         this.model_fornecedor = 'Selecione fornecedor...';
       },
-      async tableExpand(chamado_number){        
+      async tableExpand(chamado_number){     
+        if (this.LoadSyncTopDesk) {
+          this.notification('A sincronização em andamento, aguarde!', 'warn');
+          return
+        }
         this.tableExpanded = !this.tableExpanded
         this.tableWidht = !this.tableWidht
-        this.chamadoMoreInfo = chamado_number;  
+        this.chamadoMoreInfo = chamado_number;
+        this.cleanFieldsFornecedor();
       },
       goToLink(url) {
         window.open(url, "_blank");

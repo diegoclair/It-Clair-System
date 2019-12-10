@@ -736,7 +736,6 @@ module.exports = {
           };
         };
         if (update) {
-          console.log(dadosDB.num_chamado, 'alterei');
           const resUpdateChamado = await this.updateTable('chamado',
             ['status','titulo','categoria','id_solicitante','id_operator','operator','tp_operator','dt_ult_retorno','dt_encerramento',
             'feedback_message','feedback_rating'],
