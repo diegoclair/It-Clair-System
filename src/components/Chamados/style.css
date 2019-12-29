@@ -103,28 +103,47 @@ select{
     border-color: red; */
   }
   .th2{
+    min-width: 260px;
     text-align: initial;
-    width: 280px;
-    padding-left: 10px;
+    padding-left: 9px;
   }
   .td2{
     text-align: initial;
-    padding-left: 17px;
+    padding-left: 16px;
     /* border-style: solid; */
   }
   .th3{
     min-width: 110px;
   }
   .td3{
-    padding-right: 5px;
+    padding-right: 20px;
     padding-bottom: 8px;
   }
   .th4 {
-    min-width: 110px;
-    padding-right: 15px;
+    min-width: 190px;
+    text-align: center;
   }
   .td4{
+    text-align: left;
     padding-bottom: 7px;
+    padding-left: 12px;
+  }
+  .th5 {
+    min-width: 80px;
+  }
+  .td5{
+    padding-bottom: 7px;
+    text-align: center;
+  }
+  .rotate-330 {
+    -webkit-transform: rotate(330deg);
+    -moz-transform: rotate(330deg);
+    -ms-transform: rotate(330deg);
+    -o-transform: rotate(330deg);
+    transform: rotate(330deg);
+    font-size: 22px;
+    padding-bottom: 5px;
+    padding-left: 10px;
   }
   .status_button {
     /* font-weight: bold; */
@@ -161,6 +180,37 @@ select{
     padding: 0px 6px;
     /* height: 5px; o height está direto no select*/
     width: 200px;
+  }
+/* ==========================================ICON STATUS================================================ */
+  .icon-aberto{
+    color: rgba(255, 0, 8, 0.6);
+  }
+  .icon-andamento {
+    color: rgba(3, 3, 204, 0.637);
+  }
+  .icon-especialista{
+    color: rgba(11, 158, 243, 0.78);
+  }
+  .icon-fechado {
+    color: rgb(0, 0, 0);
+  }
+  .icon-fornecedor {
+    color: rgba(5, 0, 54, 0.9);
+  }
+  .icon-somente-fornecedor {
+    color: rgba(11, 158, 243, 0.78);
+  }
+  .icon-gmud {
+    color: rgba(106, 107, 104, 0.8);
+  }
+  .icon-solicitante {
+    color: rgba(255, 92, 0, 0.8);
+  }
+  .icon-resolvido {
+    color: rgba(0, 138, 0, 0.877);
+  }
+  .icon-pausado {
+    color: rgba(2, 148, 124, 0.6);
   }
   
   /* ==========================================STATUS================================================ */

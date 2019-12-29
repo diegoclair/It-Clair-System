@@ -87,10 +87,10 @@ import * as firebase from "firebase";
 
     data () {
       return{
-        mini: false,
+        mini: true,
         name: '',
         
-        minimizeSideIcon: 'subdirectory_arrow_left',
+        minimizeSideIcon: 'arrow_right_alt',
         items: [
             {
               action: 'folder', //icone
@@ -99,7 +99,7 @@ import * as firebase from "firebase";
               items: [
                 { title: 'Chamados abertos' },
                 /* { title: 'Meus grupos' }, */
-                { title: 'Todos chamados' },
+                { title: 'Chamados fechados' },
               ],
             },
             {
@@ -152,9 +152,9 @@ import * as firebase from "firebase";
             this.$router.push({name: 'OpenTickets'})
           }
         }else{
-          if (where == 'Todos chamados') {
+          if (where == 'Chamados fechados') {
             if (this.$route.fullPath !== '/allTickets') {
-            //só vou para 'Todos chamados'('/allTickets') se não estiver na pag '/allTickets', 
+            //só vou para 'Chamados fechados'('/allTickets') se não estiver na pag '/allTickets', 
             //isso evita erro no console do navegador
             this.$router.push({name: 'AllTickets'})
           }

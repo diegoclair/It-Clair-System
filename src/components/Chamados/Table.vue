@@ -40,11 +40,12 @@
         <table class="table table-sm table-hover table-dark table-striped" id="tableTickets" >
           <thead>
             <tr>
-              <th class="th0 no-sort"><i class="material-icons th_folder">create_new_folder</i></th>
+              <th class="no-sort"><i class="material-icons th_folder">create_new_folder</i></th>
               <th class="th1">Nº Chamado</th>
               <th class="th2 no-sort">Solicitante</th>
               <th v-show="tableExpanded" class="th3">Últ. Retorno</th>
-              <th v-show="tableExpanded" class="th4">Status</th>    
+              <th v-show="tableExpanded" class="th4">Status</th>
+              <th v-show="tableExpanded" class="th5">Detalhes</th>
             </tr>
           </thead>
           <tbody>
@@ -72,7 +73,7 @@
                 <td style="display: none;"></td>
                 <td @click.stop="tableExpand(chamado.num_chamado)" class="td3">{{ chamado.f_dt_ult_retorno }}</td>
                 <td class="td4">
-                    <button 
+                  <button 
                     v-if="chamado.num_chamado.trim().length !== 14"
                     @click="saveModalStatusId(chamado.num_chamado, chamado.titulo, chamado.id_chamado)"
                     type="button"
@@ -95,6 +96,43 @@
                   >                  
                   {{ chamado.status }}
                   </button>
+                  <v-icon v-if="chamado.status == 'Em aberto' || 
+                                chamado.status == 'Aguardando solicitante'" 
+                    class="rotate-330 material-icons"
+                    :class="icon_class(chamado.status)"  
+                  >send
+                  </v-icon>
+                </td>
+                <td 
+                class="td5"
+                @click.stop="tableExpand(chamado.num_chamado)"
+                >
+                  <span v-if="chamado.fornecedor">
+                    <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
+                      width="24" height="24"
+                      viewBox="0 0 172 172"
+                      style=" fill:#000000;">
+                      <g fill="none" fill-rule="nonzero" stroke="none" stroke-width="1" stroke-linecap="butt" 
+                      stroke-linejoin="miter" stroke-miterlimit="10" stroke-dasharray="" stroke-dashoffset="0" 
+                      font-family="none" font-weight="none" font-size="none" text-anchor="none" 
+                      style="mix-blend-mode: normal"><path d="M0,172v-172h172v172z" fill="none">
+                      </path><g fill="#ffffff">
+                      <path d="M86,14.33333c-39.49552,0 -71.66667,32.17115 -71.66667,71.66667c0,39.49552 32.17115,71.66667 71.66667,71.66667c39.49552,0 71.66667,-32.17115 71.66667,-71.66667c0,-39.49552 -32.17115,-71.66667 -71.66667,-71.66667zM86,28.66667c31.74921,0 57.33333,25.58412 57.33333,57.33333c0,31.74921 -25.58412,57.33333 -57.33333,57.33333c-31.74921,0 -57.33333,-25.58412 -57.33333,-57.33333c0,-31.74921 25.58412,-57.33333 57.33333,-57.33333zM62.65234,57.33333v9.57422h17.31478v47.75911h11.81381v-47.75911h17.56673v-9.57422z">
+                      </path></g></g></svg>
+                  </span>
+                  <span v-if="chamado.gmud">
+                    <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
+                      width="24" height="24"
+                      viewBox="0 0 172 172"
+                      style=" fill:#000000;">
+                      <g fill="none" fill-rule="nonzero" stroke="none" stroke-width="1" stroke-linecap="butt" 
+                      stroke-linejoin="miter" stroke-miterlimit="10" stroke-dasharray="" stroke-dashoffset="0" 
+                      font-family="none" font-weight="none" font-size="none" text-anchor="none" 
+                      style="mix-blend-mode: normal"><path d="M0,172v-172h172v172z" fill="none">
+                      </path><g fill="#ffffff">
+                      <path d="M86,14.33333c-39.49552,0 -71.66667,32.17115 -71.66667,71.66667c0,39.49552 32.17115,71.66667 71.66667,71.66667c39.49552,0 71.66667,-32.17115 71.66667,-71.66667c0,-39.49552 -32.17115,-71.66667 -71.66667,-71.66667zM86,28.66667c31.74921,0 57.33333,25.58412 57.33333,57.33333c0,31.74921 -25.58412,57.33333 -57.33333,57.33333c-31.74921,0 -57.33333,-25.58412 -57.33333,-57.33333c0,-31.74921 25.58412,-57.33333 57.33333,-57.33333zM55.83561,57.33333v57.33333h11.8138v-15.67708l-1.18978,-27.00098l15.43912,42.67806h8.11849l15.48112,-42.73405l-1.18977,27.05697v15.67708h11.85579v-57.33333h-15.50911l-14.65527,41.58626l-14.72526,-41.58626z">
+                      </path></g></g></svg>
+                  </span>
                 </td>
               </template>
               
@@ -117,7 +155,6 @@
                 <td style="display: none;"></td>
                 <td style="display: none;"></td>
               </template>
-              
             </tr>
           </tbody>
                  
@@ -125,7 +162,7 @@
       </v-card>
       <!-- table of chamados -->
       
-      <!-- Modal to change status Por hora não está sendo utilizado, pois teria que alterar no TopDesk tb -->
+      <!-- Modal to change status -->
       <div 
         class="modal fade textColorModal"
         id="modalChangeStatus"
@@ -2169,6 +2206,20 @@
           type: notify_type,
         });
       },
+      icon_class(status){
+        return {'icon-aberto': (status == 'Em aberto' || status == 'Alterado pelo solicitante'),
+             'icon-andamento': (status == 'Em andamento'),
+          'icon-especialista': (status == 'Aguardando especialista'),
+               'icon-fechado': (status == 'Fechado' || status == 'Fechado pelo solicitante'),
+                  'icon-gmud': (status == 'Aguardando GMUD'),
+            'icon-fornecedor': (status == 'Aguardando fornecedor'),
+          'icon-somente-fornecedor': (status == 'Somente fornecedor'),
+             'icon-resolvido': (status == 'Resolvido' || status == 'Aprovada'),
+               'icon-pausado': (status == 'Pausado'),
+           'icon-solicitante': (status == 'Aguardando solicitante'),
+               'pronta-iniciar': (status == 'Pronta para iniciar'),
+                  'icon-gmud': (status == 'Iniciada'),}
+      },
       status_class(status){
         return {'status-aberto': (status == 'Em aberto' || status == 'Alterado pelo solicitante'),
              'status-andamento': (status == 'Em andamento'),
@@ -2449,8 +2500,10 @@
         }
       },
       async configDataTable() {
+        
         /* Para colocar o datatable na table*/
         $(document).ready(function() {
+          $.fn.dataTable.moment('DD/MM/YYYY');
           $("#tableTickets").DataTable({
             pageLength: 15, //inicia com o filtro de 10 chamados
             lengthMenu: [[5, 10, 15, 20, 30, -1], [5, 10, 15, 20, 30, "All"]], //possibilidades de filtros
@@ -2458,9 +2511,11 @@
             columnDefs: [
               {
                 targets: 'no-sort',
-                orderable: false
+                orderable: false,
+                targets: [0, 5],
               },
             ],
+
             order: [[1, "asc"]], //to sort by default the column num_chamado
             language: {
               lengthMenu: "Mostrar _MENU_ por página",
