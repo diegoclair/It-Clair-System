@@ -99,7 +99,6 @@ class ChamadosService{
             };
        }); 
     };
-    //ESSE NÃO ESTÁ SENDO CHAMADO get data from a only one chamado
     static syncDataTopDesk(login_operator, chamado) {
                 
         return new Promise (async (resolve, reject) => {
@@ -131,7 +130,12 @@ class ChamadosService{
         });
         return res.data;        
     };
-    
+    static async sentMessageToTopDesk(data){
+        const res = await axios.post(`${urlChamados}/newMessage`, {
+            data
+        });
+        return res.data;
+    };
     static async createFolder(chamadoNumber){
         const res = await axios.post(`${urlChamados}/folder/${chamadoNumber}`);
         return res.data;

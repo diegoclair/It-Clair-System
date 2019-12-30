@@ -142,8 +142,10 @@ select{
     -o-transform: rotate(330deg);
     transform: rotate(330deg);
     font-size: 22px;
-    padding-bottom: 5px;
-    padding-left: 10px;
+    margin-top: -7px;
+    margin-left: 7px;
+    
+    text-align: right;
   }
   .status_button {
     /* font-weight: bold; */
@@ -180,6 +182,16 @@ select{
     padding: 0px 6px;
     /* height: 5px; o height está direto no select*/
     width: 200px;
+  }
+
+  .abaPendenteFornecedor{
+    border-bottom: solid rgba(2, 2, 231, 0.637);
+  }
+  .abaPendenteFesp{
+    border-bottom: solid rgba(255, 0, 8, 0.6);
+  }
+  .abaFechado{
+    border-bottom: solid rgb(0, 0, 0);
   }
 /* ==========================================ICON STATUS================================================ */
   .icon-aberto{

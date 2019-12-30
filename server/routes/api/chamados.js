@@ -36,8 +36,8 @@ router.post("/", async (req, res) => {
          && chamados[i].status.trim() !== 'Cancelado') {
             response.push(chamados[i]);
         }else{
-          if (response.length < 150) {
-            //retornar no maximo 150 registros contendo os fechados
+          if (response.length < 100) {
+            //retornar no maximo 100 registros contendo os fechados
             response.push(chamados[i])
           };
         };
@@ -55,6 +55,20 @@ router.post('/folder/:chamadoNumber', async (req, res) => {
     const resCreateFolder = await databasePostgreSql.createFolder(req.params.chamadoNumber);
     res.status(200).send(resCreateFolder);
 });
+router.post('/newMessage', async (req,res) => {
+    try {
+        var newMessage = await databasePostgreSql.topDeskAPI.sentMessageToTopdesk(req.body.data)    
+        if (newMessage !== true) {
+            res.send(newMessage);
+            return newMessage;
+        };
+    } catch (error) {
+        this.erro_message = `Erro 102: ${error}`;
+        console.log(this.erro_message);
+        return this.erro_message;
+    }
+    res.status(200).send(newMessage);
+})
 
 //*===================================================PUT================================================================//
 router.put('/updateStatus', async (req, res) => {   

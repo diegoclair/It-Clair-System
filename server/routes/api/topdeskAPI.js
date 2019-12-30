@@ -245,7 +245,7 @@ module.exports = {
       //11 - incident ; 14 partial incident
       try {
         const urlTopDesk = `${urlIncidents}/id/${data.id_chamado}`;
-        //axios.put(url[, data[, config]])
+        //axios.put(url[, data[, config]])        
         const res = await axios.put(urlTopDesk, {
           "processingStatus" : { 
               "name" : `${data.status}`
@@ -293,7 +293,69 @@ module.exports = {
       };
     };
   },
+  sentMessageToTopdesk: async function (data) {
+    await getParameters();
+    if(username == null || username == undefined){
+      //se der erro de conexão ele chama esse cara
+      return false;
+    };
+    if (postgreTopDesk.client.host == 'localhost' || postgreTopDesk.client.database == 'itclair_prot') {            
+      //banco de dados de protótipo
+      console.log('retornei');
+      return true;
+    };
 
+    if (data.num_chamado.trim().length == 11 || data.num_chamado.trim().length == 14) {
+      //11 - incident ; 14 partial incident
+      try {        
+        const texto = data.message.replace(/\n/g,"<br>");        
+        const urlTopDesk = `${urlIncidents}/id/${data.id_chamado}`;
+        //axios.put(url[, data[, config]])
+        const res = await axios.put(urlTopDesk, {
+          "action" : `${texto}`,
+        },
+        {
+          auth: { 
+            username: username.trim(), 
+            password: password.trim()
+          },
+          headers: {
+            "Content-Type": "application/json"
+          }
+        });
+        
+        return true;
+      } catch (error) {
+        this.erro_message = `Erro 099: ${error}`
+        console.log(this.erro_message);
+        return this.erro_message;
+      };
+    }else{
+      //activity
+      try {
+        const urlTopDesk = `${urlActivity}/${data.id_chamado}/progresstrail`;
+        
+        const res = await axios.post(urlTopDesk, {
+          "type": "memo",
+          "memoText" : `${data.message}`,
+        },
+        {
+          auth: { 
+            username: username.trim(),
+            password: password.trim()
+          },
+          headers: {
+            "Content-Type": "application/json"
+          },
+        });
+        return true;
+      } catch (error) {
+        this.erro_message = `Erro 100: ${error}`
+        console.log(this.erro_message);
+        return this.erro_message;
+      };
+    };    
+  },
   updateNewTicketTopDesk: async function (data) { 
     await getParameters();        
 
@@ -320,6 +382,8 @@ module.exports = {
       fornecedor = 'Nekit'
     }else if (data.id_fornecedor == '6') {
       fornecedor = 'Penso'
+    }else if (data.id_fornecedor == '7') {
+      fornecedor = 'Wisetag'
     };
 
     if (data.num_chamado.trim().length == 11 || data.num_chamado.trim().length == 14) {

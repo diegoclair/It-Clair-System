@@ -96,12 +96,17 @@
                   >                  
                   {{ chamado.status }}
                   </button>
-                  <v-icon v-if="chamado.status == 'Em aberto' || 
-                                chamado.status == 'Aguardando solicitante'" 
+                  <button v-if="chamado.status == 'Em aberto' || 
+                                chamado.status == 'Aguardando solicitante' &&
+                                chamado.f_dt_ult_retorno < todayDate" 
+                    @click="saveModalStatusId(chamado.num_chamado, chamado.titulo, chamado.id_chamado,{nome_solicitante: chamado.p_first_name.trim(),nome_operador: chamado.o_first_name.trim(), status: chamado.status})"
+    
+                    data-toggle="modal"
+                    data-target="#modalCobrarRetorno"
                     class="rotate-330 material-icons"
                     :class="icon_class(chamado.status)"  
                   >send
-                  </v-icon>
+                  </button>
                 </td>
                 <td 
                 class="td5"
@@ -182,7 +187,7 @@
             <div class="modal-body">
               <div class="form-group">
                 
-                <label for="optionStatus">Novo Status:</label>
+                <label for="selectedOptionStatus">Novo Status:</label>
                 <select class="form-control form-control-sm" id="selectedOptionStatus">
                   <option selected>Selecione um status...</option>
                   <option v-if="dataChamadoNumber.trim().length !== 10">Aguardando especialista</option>
@@ -208,6 +213,44 @@
         </div>
       </div>
       <!-- End Modal to change status -->
+
+      <!-- Modal Cobrar retorno -->
+      <div 
+        class="modal fade textColorModal"
+        id="modalCobrarRetorno"
+        tabindex="-1"
+        role="dialog"
+        aria-labelledby="modalCobrarRetornoTitle"
+        aria-hidden="true"
+        >
+        <div class="modal-dialog modal-dialog-centered" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="modalCobrarRetornoLongTitle">{{ dataChamadoNumber }} - {{dataTitulo}} </h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <textarea 
+                class="form-control"
+                id="cobrarRetorno" cols="1" rows="6" :value=mensagem 
+                style="resize: both; width: 100%;"
+                ></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+              <button type="button" class="btn btn-primary" @click="sentMessageToTopDesk('cobrarRetorno')">
+                <i v-if="LoadUpdateStatus" class="fas fa-sync fa-spin"></i>
+                Enviar
+            </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- End Modal Cobrar retorno -->
 
     </div>
 
@@ -403,6 +446,18 @@
                   <span>PENSO</span>
                 </a>
               </li>
+              <!-- ABA Wisetag -->
+              <li v-if="aba_fornecedor(7)"
+                class="nav-item">
+                <a class="nav-link"
+                  :id="`7-tab-fornecedor-wisetag`" 
+                  data-toggle="tab" :href="`#7-fornecedor-wisetag`" 
+                  role="tab" :aria-controls="`7-fornecedor-wisetag`" 
+                  aria-selected="false"
+                >
+                  <span>WISETAG</span>
+                </a>
+              </li>
               <!-- ABA Inclui novo Ticket -->
               <li class="nav-item">
                 <a class="nav-link active show"
@@ -421,10 +476,12 @@
                 <div
                   class="tab-pane fade p-0" 
                   id="1-fornecedor-totvs" role="tabpanel" :aria-labelledby="`1-tab-fornecedor-totvs`"
-                > 
+                >
                   <ul class="nav nav-tabs card-header-tabs" role="tablist">
                     <li v-for="(totvs, index) in totvsChamadoSelected" v-bind:key="`li-${index}-${totvs.num_ticket}`" 
-                      class="nav-item">
+                      :class="equalFornecedorStatus(totvs.status.trim())"
+                      class="nav-item"
+                    >
                       <a 
                         @click="alteraAba(index, totvs.status.trim(), 'totvs')"
                         class="nav-link" 
@@ -537,7 +594,9 @@
                 > 
                   <ul class="nav nav-tabs card-header-tabs" role="tablist" >
                     <li v-for="(uBrasil, index) in uBrasilChamadoSelected" v-bind:key="`li-${index}-${uBrasil.num_ticket}`" 
-                      class="nav-item" >
+                      class="nav-item" 
+                      :class="equalFornecedorStatus(uBrasil.status.trim())"
+                      >
                       <a 
                         @click="alteraAba(index, uBrasil.status.trim(), 'uBrasil')"
                         class="nav-link" :class="{'active show': index == 0 && chamado.fornecedor}" 
@@ -638,7 +697,9 @@
                 > 
                   <ul class="nav nav-tabs card-header-tabs" role="tablist" >
                     <li v-for="(plusoft, index) in plusoftChamadoSelected" v-bind:key="`li-${index}-${plusoft.num_ticket}`" 
-                      class="nav-item" >
+                      class="nav-item" 
+                      :class="equalFornecedorStatus(plusoft.status.trim())"
+                      >
                       <a 
                         @click="alteraAba(index, plusoft.status.trim(), 'plusoft')"
                         class="nav-link" :class="{'active show': index == 0 && chamado.fornecedor}" 
@@ -740,7 +801,9 @@
                 > 
                   <ul class="nav nav-tabs card-header-tabs" role="tablist" >
                     <li v-for="(projuris, index) in projurisChamadoSelected" v-bind:key="`li-${index}-${projuris.num_ticket}`" 
-                      class="nav-item" >
+                      class="nav-item" 
+                      :class="equalFornecedorStatus(projuris.status.trim())"
+                      >
                       <a 
                         @click="alteraAba(index, projuris.status.trim(), 'projuris')"
                         class="nav-link" :class="{'active show': index == 0 && chamado.fornecedor}" 
@@ -842,7 +905,9 @@
                 > 
                   <ul class="nav nav-tabs card-header-tabs" role="tablist" >
                     <li v-for="(nekit, index) in nekitChamadoSelected" v-bind:key="`li-${index}-${nekit.num_ticket}`" 
-                      class="nav-item" >
+                      class="nav-item" 
+                      :class="equalFornecedorStatus(nekit.status.trim())"
+                      >
                       <a 
                         @click="alteraAba(index, nekit.status.trim(), 'nekit')"
                         class="nav-link" :class="{'active show': index == 0 && chamado.fornecedor}" 
@@ -944,7 +1009,9 @@
                 > 
                   <ul class="nav nav-tabs card-header-tabs" role="tablist" >
                     <li v-for="(penso, index) in pensoChamadoSelected" v-bind:key="`li-${index}-${penso.num_ticket}`" 
-                      class="nav-item" >
+                      class="nav-item" 
+                      :class="equalFornecedorStatus(penso.status.trim())"
+                      >
                       <a 
                         @click="alteraAba(index, penso.status.trim(), 'penso')"
                         class="nav-link" :class="{'active show': index == 0 && chamado.fornecedor}" 
@@ -1038,6 +1105,109 @@
                 </div>
                 <!-- FIM 6 - TAB PENSO -->
 
+                <!-- TAB 7 - WISETAG -->
+                <div
+                  class="tab-pane fade p-0" 
+                  id="7-fornecedor-wisetag" role="tabpanel" :aria-labelledby="`7-tab-fornecedor-wisetag`"
+                > 
+                  <ul class="nav nav-tabs card-header-tabs" role="tablist" >
+                    <li v-for="(wisetag, index) in wisetagChamadoSelected" v-bind:key="`li-${index}-${wisetag.num_ticket}`" 
+                      class="nav-item" 
+                      :class="equalFornecedorStatus(wisetag.status.trim())"
+                      >
+                      <a 
+                        @click="alteraAba(index, wisetag.status.trim(), 'wisetag')"
+                        class="nav-link" :class="{'active show': index == 0 && chamado.fornecedor}" 
+                        :id="`${index}-tab-${wisetag.num_ticket}`" data-toggle="tab" :href="`#${index}-${wisetag.num_ticket}`" role="tab" 
+                        :aria-controls="`${index}-${wisetag.num_ticket}`" aria-selected="true"
+                      >
+                        {{wisetag.num_ticket}}
+                      </a>
+                    </li>
+                  </ul>
+
+                  <div class="card tab-card">
+                    <div class="tab-content">
+                      <div 
+                        v-for="(wisetag, index) in wisetagChamadoSelected" v-bind:key="`li-${index}-${wisetag.num_ticket}`" 
+                        :class="{'active show': index == 0 && chamado.fornecedor}"
+                        class="tab-pane fade p-3 pt-2" :id="`${index}-${wisetag.num_ticket}`" 
+                        role="tabpanel" :aria-labelledby="`${index}-tab-${wisetag.num_ticket}`"
+                      >
+                        <!-- cabeçalho do body -->
+                        <div class="form-row">
+                          <div class="col-10 pt-1">
+                            <h6 class="card-title titleFornecedorGmudBody">
+                              <a @click="goToLink(`${wisetag.link_ticket !== '' 
+                                                  && wisetag.link_ticket !== null 
+                                                  && wisetag.link_ticket !== undefined ? 
+                                                  wisetag.link_ticket.trim() + `/` + wisetag.num_ticket.trim() :
+                                                  wisetag.link_open_ticket.trim()}`)"
+                              >{{wisetag.num_ticket}}</a>  - {{wisetag.titulo}}</h6> 
+                          </div>
+                          <div class="col-2 pt-0" style="text-align: right;">
+                            <button
+                              v-if="wisetag.status.trim() !== 'Fechado'"
+                              @click="deleteTicket(wisetag.num_chamado.trim(),wisetag.num_ticket.trim(),wisetag.id_fornecedor.trim())" 
+                              class="btn-sm btn-danger ml-5" >
+                              <i v-if="LoadIncluiExcluiTicket" class="fas fa-sync fa-spin"></i>
+                              Excluir</button>
+                          </div>
+                        </div>
+                        <hr class="p-0 mb-1">
+                        <!-- Conteúdo do body -->
+                        
+                        <div class="form-row">
+                          <div class="col-2">
+                            <label class="card-text">Dt. Abertura:</label>
+                          </div>
+                          <div class="col-4">
+                            <input disabled class="fields_moreInfo width_moreInfo" :value="wisetag.f_dt_abertura.trim()">
+                          </div>
+                          <div class="col-1">
+                            <label>Status:</label>
+                          </div>
+                          <div class="col-4">
+                            <select :id="`status-wisetag${index}`" 
+                              v-on:change="statusChange(wisetag.status.trim(),index,'wisetag')"
+                              :disabled="wisetag.f_dt_encerramento !== null ? true : false"
+                              class="fields_moreInfo width_moreInfo"
+                              :class="status_class_fornecedor(wisetag.status, wisetag.id_fornecedor)">
+                              <option :selected="wisetag.status.trim() === 'Pendente fesp'" value="fesp">Pendente fesp</option>
+                              <option :selected="wisetag.status.trim() === 'Pendente wisetag'" value="wisetag">Pendente wisetag</option>
+                              <option :selected="wisetag.status.trim() === 'Fechado'" value="fechado">Fechado</option>
+                            </select>
+                          </div>
+                          <div class="col-1" style="margin-top: -4px;"> <!-- icons -->
+                            <i class="material-icons" 
+                              v-if="wisetag_status_change_icon" 
+                              @click.stop.prevent="alteraStatus(index, chamado.num_chamado, 
+                                                                wisetag.num_ticket, 'wisetag')" 
+                              style="cursor: pointer">
+                              save
+                            </i>
+                            <i v-if="loadChangeStatusFornecedor" class="fas fa-sync fa-spin"></i>
+                          </div>
+                        </div>
+                        <div class="form-row" v-if="wisetag.status.trim() == 'Fechado' || wisetag_status_fechado == true">
+                          <div class="col-2">
+                            <label class="card-text">Fechado em:</label>
+                          </div>
+                          <div class="col-4">
+                            <input :type="wisetag.status.trim() === 'Fechado' ? 'text' : 'date'" 
+                              :id="`dt-fechado-wisetag${index}`"
+                              :value="wisetag.status.trim() === 'Fechado' ? wisetag.f_dt_encerramento.trim() : todayDate"
+                              :disabled="wisetag.status.trim() === 'Fechado'"
+                              class="fields_moreInfo width_moreInfo" >
+                          </div>
+                        </div>
+                      
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- FIM 7 - TAB WISETAG -->
+
                 <!-- TAB 0 - Incluir novo ticket -->
                 <div 
                   class="active show tab-pane p-3 pt-0 pb-2 fade inclui-fornecedor" 
@@ -1094,6 +1264,14 @@
                                             ''}`)"
                         >Incluir Novo</a>
                       </label>
+                      <label v-if="model_fornecedor == 'wisetag'" class="card-title">
+                        <a @click="goToLink(`${wisetag_open !== '' 
+                                            && wisetag_open !== null 
+                                            && wisetag_open !== undefined ? 
+                                            wisetag_open.trim() :
+                                            ''}`)"
+                        >Incluir Novo</a>
+                      </label>
                     </div>
                     <div class="col-2">
                       <label>Fornecedor:</label>
@@ -1107,6 +1285,7 @@
                         <option value="projuris">Projuris</option>
                         <option value="nekit">Nekit</option>
                         <option value="penso">Penso</option>
+                        <option value="wisetag">Wisetag</option>
                       </select>
                     </div>
                     <div v-if="model_fornecedor !== 'Selecione fornecedor...' && t_nr_ticket !== ''"
@@ -1382,31 +1561,9 @@
         status: '',
         search: '',
         login_rede_user_logged: null,
-        chamados: [],
         openChamados: [],
         checkboxClosed: false,
-        gmuds: [],
-        totvs: [],
-        uBrasil: [],
-        plusoft: [],
-        projuris: [],
-        nekit: [],
-        penso: [],
         fornecedores: [],
-        totvs_open: '',
-        uBrasil_open: '',
-        plusoft_open: '',
-        projuris_open: '',
-        nekit_open: '',
-        penso_open: '',
-        dataChamadoMoreInfo: [],
-        dataGmudMoreInfo: [],
-        dataTotvsMoreInfo: [],
-        dataUBrasilMoreInfo: [],
-        dataPlusoftMoreInfo: [],
-        dataProjurisMoreInfo: [],
-        dataNekitMoreInfo: [],
-        dataPensoMoreInfo: [],
         dataStatus: '',
         dataFornecedor: '',
         dataChamadoNumber: '',
@@ -1418,12 +1575,6 @@
         chamadoMoreInfo: '',
         input_syncTopdesk: '',
         incluidoExcluidoGmud: false,
-        incluidoExcluidoTotvs: false,
-        incluidoExcluidoUBrasil: false,
-        incluidoExcluidoPlusoft: false,
-        incluidoExcluidoProjuris: false,
-        incluidoExcluidoNekit: false,
-        incluidoExcluidoPenso: false,
         model_fornecedor: 'Selecione fornecedor...',
         t_nr_ticket: '',
         t_status: '',  //quando totvs, se o status for fechado apresento alguns campos a mais
@@ -1433,18 +1584,61 @@
         LoadIncluiExcluiTicket: false,
         loadChangeStatusFornecedor: false,
         LoadIncluiExcluiGmud: false,
+        mensagem:'',
+
+        chamados: [],
+        dataChamadoMoreInfo: [],
+        gmuds: [],
+        dataGmudMoreInfo: [],
+
+        totvs: [],
+        totvs_open: '',
+        dataTotvsMoreInfo: [],
+        incluidoExcluidoTotvs: false,
         totvs_status_change_icon: false,
         totvs_status_fechado: false,
+        
+        uBrasil: [],
+        uBrasil_open: '',
+        dataUBrasilMoreInfo: [],
+        incluidoExcluidoUBrasil: false,
         uBrasil_status_change_icon: false,
         uBrasil_status_fechado: false,
+        
+        plusoft: [],
+        plusoft_open: '',
+        dataPlusoftMoreInfo: [],
+        incluidoExcluidoPlusoft: false,
         plusoft_status_change_icon: false,
         plusoft_status_fechado: false,
+        
+        projuris: [],
+        projuris_open: '',
+        dataProjurisMoreInfo: [],
+        incluidoExcluidoProjuris: false,
         projuris_status_change_icon: false,
         projuris_status_fechado: false,
+        
+        nekit: [],
+        nekit_open: '',
+        dataNekitMoreInfo: [],
+        incluidoExcluidoNekit: false,
         nekit_status_change_icon: false,
         nekit_status_fechado: false,
+        
+        penso: [],
+        penso_open: '',
+        dataPensoMoreInfo: [],
+        incluidoExcluidoPenso: false,
         penso_status_change_icon: false,
         penso_status_fechado: false,
+        
+        wisetag: [],
+        wisetag_open: '',
+        dataWisetagMoreInfo: [],
+        incluidoExcluidoWisetag: false,
+        wisetag_status_change_icon: false,
+        wisetag_status_fechado: false,     
       };
     },
 
@@ -1479,7 +1673,7 @@
         
       },
       async gmudChamadoSelected(){
-         if (this.incluidoExcluidoGmud) {
+         if (this.incluidoExcluidoGmud == 'create') {
           await this.getChamadoGmudTicket('gmud', false);
           this.incluidoExcluidoGmud = false;
 
@@ -1491,6 +1685,22 @@
           $('#1-tab-gmud').addClass('active show');
 
           this.inputGmudValue = ''; //limpar o campo em que digita a gmud para ser incluida
+
+          this.setTrueGmud();
+        };
+
+        if (this.incluidoExcluidoGmud == 'delete') {
+          await this.getChamadoGmudTicket('gmud', false);
+          this.incluidoExcluidoGmud = false;
+
+          //se incluidoExcluidoGmud era true e entrou aqui, significa que criei ou deletei uma gmud
+          $('#0-gmud').addClass('active show');
+          $('#0-tab-gmud').addClass('active show');
+
+          $('#1-gmud').removeClass('active show');
+          $('#1-tab-gmud').removeClass('active show');
+
+          this.removeTrueGmud();
         };
 
         this.dataGmudMoreInfo = [];
@@ -1518,6 +1728,10 @@
 
           $('#1-fornecedor-totvs').addClass('active show');
           $('#1-tab-fornecedor-totvs').addClass('active show');
+
+          //quando incluir um ticket, garantir que o fornecedor seja true (antes de sincronizar table chamado)
+          this.setTrueFornecedor();
+
         };
         if (this.incluidoExcluidoTotvs == 'delete') {
           $('#0-fornecedor').addClass('active show');
@@ -1525,6 +1739,9 @@
 
           $('#1-fornecedor-totvs').removeClass('active show');
           $('#1-tab-fornecedor-totvs').removeClass('active show');
+
+          //quando deletar o ultimo ticket, garantir que o fornecedor seja false (antes de sincronizar table chamado)
+          this.removeTrueFornecedor('1');
         };
         this.incluidoExcluidoTotvs = false;
 
@@ -1553,6 +1770,9 @@
 
           $('#2-fornecedor-uBrasil').addClass('active show');
           $('#2-tab-fornecedor-uBrasil').addClass('active show');
+
+          //quando incluir um ticket, garantir que o fornecedor seja true (antes de sincronizar table chamado)
+          this.setTrueFornecedor();
         };
         if (this.incluidoExcluidoUBrasil == 'delete') {
           $('#0-fornecedor').addClass('active show');
@@ -1560,6 +1780,9 @@
 
           $('#2-fornecedor-uBrasil').removeClass('active show');
           $('#2-tab-fornecedor-uBrasil').removeClass('active show');
+
+          //quando deletar o ultimo ticket, garantir que o fornecedor seja false (antes de sincronizar table chamado)
+          this.removeTrueFornecedor('2');
         };
         this.incluidoExcluidoUBrasil = false;
 
@@ -1588,6 +1811,9 @@
 
           $('#3-fornecedor-plusoft').addClass('active show');
           $('#3-tab-fornecedor-plusoft').addClass('active show');
+
+          //quando incluir um ticket, garantir que o fornecedor seja true (antes de sincronizar table chamado)
+          this.setTrueFornecedor();
         };
         if (this.incluidoExcluidoPlusoft == 'delete') {
           $('#0-fornecedor').addClass('active show');
@@ -1595,6 +1821,9 @@
 
           $('#3-fornecedor-plusoft').removeClass('active show');
           $('#3-tab-fornecedor-plusoft').removeClass('active show');
+
+          //quando deletar o ultimo ticket, garantir que o fornecedor seja false (antes de sincronizar table chamado)
+          this.removeTrueFornecedor('3');
         };
         this.incluidoExcluidoPlusoft = false;
 
@@ -1623,6 +1852,9 @@
 
           $('#4-fornecedor-projuris').addClass('active show');
           $('#4-tab-fornecedor-projuris').addClass('active show');
+
+          //quando incluir um ticket, garantir que o fornecedor seja true (antes de sincronizar table chamado)
+          this.setTrueFornecedor();
         };
         if (this.incluidoExcluidoProjuris == 'delete') {
           $('#0-fornecedor').addClass('active show');
@@ -1630,6 +1862,9 @@
 
           $('#4-fornecedor-projuris').removeClass('active show');
           $('#4-tab-fornecedor-projuris').removeClass('active show');
+
+          //quando deletar o ultimo ticket, garantir que o fornecedor seja false (antes de sincronizar table chamado)
+          this.removeTrueFornecedor('4');
         };
         this.incluidoExcluidoProjuris = false;
 
@@ -1658,6 +1893,9 @@
 
           $('#5-fornecedor-nekit').addClass('active show');
           $('#5-tab-fornecedor-nekit').addClass('active show');
+
+          //quando incluir um ticket, garantir que o fornecedor seja true (antes de sincronizar table chamado)
+          this.setTrueFornecedor();
         };
         if (this.incluidoExcluidoNekit == 'delete') {
           $('#0-fornecedor').addClass('active show');
@@ -1665,6 +1903,9 @@
 
           $('#5-fornecedor-nekit').removeClass('active show');
           $('#5-tab-fornecedor-nekit').removeClass('active show');
+
+          //quando deletar o ultimo ticket, garantir que o fornecedor seja false (antes de sincronizar table chamado)
+          this.removeTrueFornecedor('5');
         };
         this.incluidoExcluidoNekit = false;
 
@@ -1693,6 +1934,9 @@
 
           $('#6-fornecedor-penso').addClass('active show');
           $('#6-tab-fornecedor-penso').addClass('active show');
+
+          //quando incluir um ticket, garantir que o fornecedor seja true (antes de sincronizar table chamado)
+          this.setTrueFornecedor();
         };
         if (this.incluidoExcluidoPenso == 'delete') {
           $('#0-fornecedor').addClass('active show');
@@ -1700,6 +1944,9 @@
 
           $('#6-fornecedor-penso').removeClass('active show');
           $('#6-tab-fornecedor-penso').removeClass('active show');
+
+          //quando deletar o ultimo ticket, garantir que o fornecedor seja false (antes de sincronizar table chamado)
+          this.removeTrueFornecedor('6');
         };
         this.incluidoExcluidoPenso = false;
 
@@ -1713,6 +1960,46 @@
             }
             this.LoadIncluiExcluiTicket = false;
             return this.dataPensoMoreInfo;
+          };
+
+          this.LoadIncluiExcluiTicket = false;
+      },
+      async wisetagChamadoSelected(){
+        if (this.incluidoExcluidoWisetag == 'create' || this.incluidoExcluidoWisetag == 'delete') {
+          await this.getChamadoGmudTicket('ticket', false);
+        };
+
+        if (this.incluidoExcluidoWisetag == 'create') {
+          $('#0-fornecedor').removeClass('active show');
+          $('#0-tab-fornecedor').removeClass('active show');
+
+          $('#7-fornecedor-wisetag').addClass('active show');
+          $('#7-tab-fornecedor-wisetag').addClass('active show');
+
+          //quando incluir um ticket, garantir que o fornecedor seja true (antes de sincronizar table chamado)
+          this.setTrueFornecedor();
+        };
+        if (this.incluidoExcluidoWisetag == 'delete') {
+          $('#0-fornecedor').addClass('active show');
+          $('#0-tab-fornecedor').addClass('active show');
+
+          $('#7-fornecedor-wisetag').removeClass('active show');
+          $('#7-tab-fornecedor-wisetag').removeClass('active show');
+
+          //quando deletar o ultimo ticket, garantir que o fornecedor seja false (antes de sincronizar table chamado)
+          this.removeTrueFornecedor('7');
+        };
+        this.incluidoExcluidoWisetag = false;
+
+        this.dataWisetagMoreInfo = [];
+          if (!this.tableExpanded) {
+            for (let i = 0; i < this.wisetag.length; i++) {
+              if (this.wisetag[i].num_chamado.trim() == this.chamadoMoreInfo.trim()) {
+                this.dataWisetagMoreInfo.push(this.wisetag[i]);
+              }
+            }
+            this.LoadIncluiExcluiTicket = false;
+            return this.dataWisetagMoreInfo;
           };
 
           this.LoadIncluiExcluiTicket = false;
@@ -1789,8 +2076,6 @@
               console.log(this.error);
               this.notification(this.error,'error','ERRO AO ALTERAR STATUS FORNECEDOR');
             };
-            console.log('passei aqui e coloquei false');
-            
             
             this.totvs_status_fechado = false; //quando fechava um ticket e ia pra outro, ele mostrava os campos de fechado
 
@@ -1800,6 +2085,7 @@
             this.projuris_status_change_icon = false
             this.nekit_status_change_icon = false
             this.penso_status_change_icon = false
+            this.wisetag_status_change_icon = false
             await this.getChamadoGmudTicket('ticket', false);
           };
           
@@ -1823,7 +2109,10 @@
             this.nekit_status_change_icon = true
           }else if (fornecedor == 'penso') {
             this.penso_status_change_icon = true
+          }else if (fornecedor == 'wisetag') {
+            this.wisetag_status_change_icon = true
           }
+          
         }else {
           if (fornecedor == 'totvs') {
             this.totvs_status_change_icon = false
@@ -1837,6 +2126,8 @@
             this.nekit_status_change_icon = false
           }else if (fornecedor == 'penso') {
             this.penso_status_change_icon = false
+          }else if (fornecedor == 'wisetag') {
+            this.wisetag_status_change_icon = false
           }
         };
         
@@ -1854,6 +2145,8 @@
             this.nekit_status_fechado = true
           }else if (fornecedor == 'penso') {
             this.penso_status_fechado = true
+          }else if (fornecedor == 'wisetag') {
+            this.wisetag_status_fechado = true
           }
 
         }else{
@@ -1869,6 +2162,8 @@
             this.nekit_status_fechado = false
           }else if (fornecedor == 'penso') {
             this.penso_status_fechado = false
+          }else if (fornecedor == 'wisetag') {
+            this.wisetag_status_fechado = false
           }
         }
       },
@@ -1900,6 +2195,13 @@
           }
         }
         
+      },
+      equalFornecedorStatus(status){
+        return {
+          'abaPendenteFesp': (status == 'Pendente fesp'),
+          'abaFechado': (status == 'Fechado'),
+          'abaPendenteFornecedor' : (status !== 'Fechado' && status !== 'Pendente fesp')
+        }
       },
       cleanFieldsFornecedor(){
         this.model_fornecedor = 'Selecione fornecedor...';
@@ -1940,6 +2242,11 @@
             const existe = this.penso.find(ticket => ticket.num_chamado.trim() === this.chamadoMoreInfo.trim());
             return existe == undefined ? false :  true
           }
+        } else if (fornecedor === 7) { //Wisetag
+          if (this.wisetag !== []){
+            const existe = this.wisetag.find(ticket => ticket.num_chamado.trim() === this.chamadoMoreInfo.trim());
+            return existe == undefined ? false :  true
+          }
         }
         
       },
@@ -1957,8 +2264,167 @@
           id_fornecedor = '5';
         }else if (fornecedor == 'penso') {
           id_fornecedor = '6';
+        }else if (fornecedor == 'wisetag') {
+          id_fornecedor = '7';
         };
         return id_fornecedor;
+      },
+      async getStorage(){
+        const id_firebase = this.$store.getters.userLoggedId;
+        let res = '';
+        if (localStorage.getItem(`chamados-${id_firebase}`) !== null && 
+            localStorage.getItem(`chamados-${id_firebase}`) !== undefined) {
+            res = JSON.parse(localStorage.getItem(`chamados-${id_firebase}`));
+        }
+        return res;
+      },
+      async setStorage(storage){
+        const id_firebase = this.$store.getters.userLoggedId;
+        localStorage.setItem(`chamados-${id_firebase}`, JSON.stringify(storage));
+      },
+      async removeStorage(){
+        const id_firebase = this.$store.getters.userLoggedId;
+        localStorage.removeItem(`chamados-${id_firebase}`);
+      },
+      async setTrueFornecedor(){
+        let storage = await this.getStorage();
+        for (let i = 0; i < storage.length; i++) {
+          if (storage[i].num_chamado.trim() == this.chamadoMoreInfo.trim()) {
+            storage[i].fornecedor = true;
+            break;
+          }
+        };
+
+        for (let i = 0; i < this.chamados.length; i++) {
+          if (this.chamados[i].num_chamado.trim() == this.chamadoMoreInfo.trim()) {
+            this.chamados[i].fornecedor = true;
+            break;
+          }
+        };
+        await this.removeStorage();
+        await this.setStorage(storage);
+      },
+      async removeTrueFornecedor(id_fornecedor){
+        let existeOutroTicket = false;
+
+        if (id_fornecedor.trim() == '1') {
+          for (let i = 0; i < this.totvs.length; i++) {
+            if (this.totvs[i].num_chamado.trim() == this.chamadoMoreInfo.trim()) {
+              existeOutroTicket = true;
+              break;
+            };
+          };
+        }else if (id_fornecedor.trim() == '2') {
+          for (let i = 0; i < this.uBrasil.length; i++) {
+            if (this.uBrasil[i].num_chamado.trim() == this.chamadoMoreInfo.trim()) {
+              existeOutroTicket = true;
+              break;
+            };
+          };
+        }else if (id_fornecedor.trim() == '3') {
+          for (let i = 0; i < this.plusoft.length; i++) {
+            if (this.plusoft[i].num_chamado.trim() == this.chamadoMoreInfo.trim()) {
+              existeOutroTicket = true;
+              break;
+            };
+          };
+        }else if (id_fornecedor.trim() == '4') {
+          for (let i = 0; i < this.projuris.length; i++) {
+            if (this.projuris[i].num_chamado.trim() == this.chamadoMoreInfo.trim()) {
+              existeOutroTicket = true;
+              break;
+            };
+          };
+        }else if (id_fornecedor.trim() == '5') {
+          for (let i = 0; i < this.nekit.length; i++) {
+            if (this.nekit[i].num_chamado.trim() == this.chamadoMoreInfo.trim()) {
+              existeOutroTicket = true;
+              break;
+            };
+          };
+        }else if (id_fornecedor.trim() == '6') {
+          for (let i = 0; i < this.penso.length; i++) {
+            if (this.penso[i].num_chamado.trim() == this.chamadoMoreInfo.trim()) {
+              existeOutroTicket = true;
+              break;
+            };
+          };
+        }else if (id_fornecedor.trim() == '7') {
+          for (let i = 0; i < this.wisetag.length; i++) {
+            if (this.wisetag[i].num_chamado.trim() == this.chamadoMoreInfo.trim()) {
+              existeOutroTicket = true;
+              break;
+            };
+          };
+        }
+
+        if (!existeOutroTicket) {
+          //se não tem outro ticket, vou colocar false
+          let storage = await this.getStorage();
+          for (let i = 0; i < storage.length; i++) {
+            if (storage[i].num_chamado.trim() == this.chamadoMoreInfo.trim()) {
+              storage[i].fornecedor = false;
+              break;
+            }
+          };
+
+          for (let i = 0; i < this.chamados.length; i++) {
+            if (this.chamados[i].num_chamado.trim() == this.chamadoMoreInfo.trim()) {
+              this.chamados[i].fornecedor = false;
+              break;
+            }
+          };
+          await this.removeStorage();
+          await this.setStorage(storage);
+        };          
+      },
+      async setTrueGmud(){
+        let storage = await this.getStorage();
+        for (let i = 0; i < storage.length; i++) {
+          if (storage[i].num_chamado.trim() == this.chamadoMoreInfo.trim()) {
+            storage[i].gmud = true;
+            break;
+          }
+        };
+
+        for (let i = 0; i < this.chamados.length; i++) {
+          if (this.chamados[i].num_chamado.trim() == this.chamadoMoreInfo.trim()) {
+            this.chamados[i].gmud = true;
+            break;
+          }
+        };
+        await this.removeStorage();
+        await this.setStorage(storage);
+      },
+      async removeTrueGmud(){
+
+        let existeOutraGmud = false;
+
+        for (let i = 0; i < this.gmuds.length; i++) {
+          if (this.gmuds[i].num_chamado.trim() == this.chamadoMoreInfo.trim()) {
+            existeOutraGmud = true;
+            break;
+          };
+        };
+
+        if (!existeOutraGmud) {
+          let storage = await this.getStorage();
+          for (let i = 0; i < storage.length; i++) {
+            if (storage[i].num_chamado.trim() == this.chamadoMoreInfo.trim()) {
+              storage[i].gmud = false;
+              break;
+            }
+          };
+
+          for (let i = 0; i < this.chamados.length; i++) {
+            if (this.chamados[i].num_chamado.trim() == this.chamadoMoreInfo.trim()) {
+              this.chamados[i].gmud = false;
+              break;
+            }
+          };
+          await this.removeStorage();
+          await this.setStorage(storage);
+        };
       },
       async createTicket(id_chamado,num_chamado,fornecedor,categoria, nome_solicitante){
         
@@ -2052,6 +2518,8 @@
                 this.incluidoExcluidoNekit = 'create';
               } else if (id_fornecedor.trim() == '6') {
                 this.incluidoExcluidoPenso = 'create';
+              } else if (id_fornecedor.trim() == '7') {
+                this.incluidoExcluidoWisetag = 'create';
               };
               /* const resFolder = await this.createFolderFornecedor(num_chamado,num_ticket,titulo,dt_abertura,id_fornecedor); */
 
@@ -2061,8 +2529,10 @@
               this.projuris_status_fechado = false
               this.nekit_status_fechado = false
               this.penso_status_fechado = false
+              this.wisetag_status_fechado = false
 
-              this.notification('Ticket criado com sucesso','success')
+              this.cleanFieldsFornecedor();
+              this.notification('Ticket criado com sucesso','success');
             }
           } catch (error) {
             const erro = `Erro 064: ${error}`
@@ -2096,37 +2566,20 @@
               this.incluidoExcluidoNekit = 'delete';
             } else if (id_fornecedor.trim() == '6') {
               this.incluidoExcluidoPenso = 'delete';
-            }
+            }else if (id_fornecedor.trim() == '7') {
+              this.incluidoExcluidoWisetag = 'delete';
+            };
+
           } catch (error) {
             const erro = `Erro 065: ${error}`
             this.notification(erro);
             console.log(erro);
             this.LoadIncluiExcluiTicket = false;
-          } 
+          };
         }else{
           //if the button cancel is clicked
           this.LoadIncluiExcluiTicket = false;
-        }
-      },
-      async deleteGmud(gmud_number, chamado_number){
-        //esse confirm abre um alert, se eu clicar em OK a resposta será true e cancelar será false
-        let res = confirm(`Tem certeza que deseja excluir a gmud ${gmud_number} do chamado ${chamado_number}`);
-        if (res == true) {
-        this.LoadIncluiExcluiGmud = true;  //finalizo lá no computed
-          try {
-            await ChamadosService.deleteGmud(gmud_number, chamado_number);
-            //o computed gmudChamadoSelected será chamado pois this.incluidoExcluidoGmud está lá, e lá chamará gmudFromServer
-            this.incluidoExcluidoGmud = true;
-
-          } catch (err) {
-            console.log(`erro ao chamar o ChamadosService.deleteGmud: ${err}`);
-            this.LoadIncluiExcluiGmud = false;
-          }
-        }else{
-          //if cancel button is clicked
-          this.LoadIncluiExcluiGmud = false;
-        }
-        
+        };
       },
       async createGmud(gmud_number, chamado_number) {
         this.LoadIncluiExcluiGmud = true; //finalizo lá no computed
@@ -2146,14 +2599,35 @@
             } else{              
               //só altero essa variável se não der erro, daí ele vai chamar os dados no server, pois se não deu erro, será incluído..
               //o computed gmudChamadoSelected será chamado pois this.incluidoExcluidoGmud está lá, e lá chamará gmudFromServer 
-              this.incluidoExcluidoGmud = true;
+              this.incluidoExcluidoGmud = 'create';
+              await this.setTrueGmud()
+              this.notification('A mudança foi incluída com sucesso', 'success');
             };
-                
+
           } catch (err) {
             this.notification(err);
           };
         };
 
+      },
+      async deleteGmud(gmud_number, chamado_number){
+        //esse confirm abre um alert, se eu clicar em OK a resposta será true e cancelar será false
+        let res = confirm(`Tem certeza que deseja excluir a gmud ${gmud_number} do chamado ${chamado_number}`);
+        if (res == true) {
+        this.LoadIncluiExcluiGmud = true;  //finalizo lá no computed
+          try {
+            await ChamadosService.deleteGmud(gmud_number, chamado_number);
+            //o computed gmudChamadoSelected será chamado pois this.incluidoExcluidoGmud está lá, e lá chamará gmudFromServer
+            this.incluidoExcluidoGmud = 'delete';
+          } catch (err) {
+            console.log(`erro ao chamar o ChamadosService.deleteGmud: ${err}`);
+            this.LoadIncluiExcluiGmud = false;
+          };
+        }else{
+          //if cancel button is clicked
+          this.LoadIncluiExcluiGmud = false;
+        };
+        
       },
       async createFolderCopyPath(chamado_number){
 
@@ -2248,6 +2722,8 @@
           fornecedor = 'nekit'
         }else if (id.trim() == '6') {
           fornecedor = 'penso'
+        }else if (id.trim() == '7') {
+          fornecedor = 'wisetag'
         };       
 
         return {'status-aberto': (status.trim() == 'Pendente fesp'),
@@ -2271,26 +2747,42 @@
       goToLink(url) {
         window.open(url, "_blank");
       },
-      saveModalStatusId(numChamado, titulo, id_chamado) {
+      saveModalStatusId(numChamado, titulo, id_chamado, dadosRetornoMensagem) {
         $('#selectedOptionStatus').val('Selecione um status...');
-        this.dataChamadoNumber = numChamado;
-        this.dataId = id_chamado;
-        this.dataTitulo = titulo;
+        this.dataChamadoNumber = numChamado.trim();
+        this.dataId = id_chamado.trim();
+        this.dataTitulo = titulo.trim();
+        if (dadosRetornoMensagem) {
+          this.dataStatus = dadosRetornoMensagem.status.trim();
+          this.mensagem = '';          
+          let today = new Date();
+          let hour = today.getHours()
+          let saudacao = hour < 12 ? 'bom dia' : hour < 18 ? 'boa tarde' : 'boa noite'
+          if (dadosRetornoMensagem.status == 'Em aberto') {
+            this.mensagem = `Olá ${dadosRetornoMensagem.nome_solicitante}, ${saudacao}! \n\nRecebemos sua solicitação e estamos analisando. \nLogo retornaremos. \n\nAt.te,\n${dadosRetornoMensagem.nome_operador}`
+          }
+          if (dadosRetornoMensagem.status == 'Aguardando solicitante') {
+            this.mensagem = `Olá ${dadosRetornoMensagem.nome_solicitante}, ${saudacao}! \n\nAlgum Retorno? \n\nAt.te,\n${dadosRetornoMensagem.nome_operador}`
+          }
+        }
       },
-      async updateStatusServer() {
-
+      async updateStatusServer(statusRetornoTopDesk) {
+        //se eu recebi o update do sentMessageToTopdesk eu passo o statusRetornoTopDesk
         this.LoadUpdateStatus = true;
 
-        this.dataStatus = $("#selectedOptionStatus").val();
-        if (this.dataStatus == 'Selecione um status...') {
+        if (!statusRetornoTopDesk) {
+          this.dataStatus = $("#selectedOptionStatus").val();
+        }
+        if (this.dataStatus == 'Selecione um status...' && !statusRetornoTopDesk) {
           alert('Por favor, selecione um novo status')
         }else{
           try {              
             const data = {
-                num_chamado: this.dataChamadoNumber,
-                id_chamado: this.dataId,
-                status: this.dataStatus
+                num_chamado: this.dataChamadoNumber.trim(),
+                id_chamado: this.dataId.trim(),
+                status: this.dataStatus.trim()
             };
+            
             const alteraTopdeskDatabase = await ChamadosService.updateStatus(data);
             
             if (alteraTopdeskDatabase.data !== true && alteraTopdeskDatabase !== 'true') {
@@ -2360,6 +2852,46 @@
         await this.configDataTable();
 
         this.notification('Atualizado com sucesso','success');
+      },
+      async sentMessageToTopDesk(id){
+        this.LoadUpdateStatus = true;
+        const message = $(`#${id}`).val();        
+        const data = {
+                num_chamado: this.dataChamadoNumber.trim(),
+                id_chamado: this.dataId.trim(),
+                status: this.dataStatus.trim(),
+                message
+        }
+        try {
+          const sent = await ChamadosService.sentMessageToTopDesk(data);
+
+          if (data.status == 'Em aberto') {
+            this.dataStatus = 'Em andamento';
+            try {
+              await this.updateStatusServer(this.dataStatus)
+            } catch (error) {
+              this.error = `Erro 101 - ${error.message}`;
+              console.log(this.error);
+              $('#modalCobrarRetorno').modal('hide');
+              this.LoadUpdateStatus = false; 
+            }
+          };
+          
+          this.LoadUpdateStatus = false; 
+
+          if (sent == true) {
+            this.notification('Mensagem enviada com sucesso','success','Atualizado com sucesso');
+            $('#modalCobrarRetorno').modal('hide'); 
+          }else if (sent.indexOf('Erro') == 0) {
+            this.notification(sent,'error','Erro ao enviar texto')
+            $('#modalCobrarRetorno').modal('hide'); 
+          }  
+        } catch (error) {
+          this.error = `Erro 098 - ${error.message}`;
+          console.log(this.error);
+          $('#modalCobrarRetorno').modal('hide');   
+          this.LoadUpdateStatus = false; 
+        }
       },
       async syncDataTopDesk(){
         //verificar se tem outro processo em andamento
@@ -2452,6 +2984,8 @@
                 this.nekit_open = this.fornecedores[i].link_open_ticket;
               }else if (this.fornecedores[i].id_fornecedor.trim() == '6') {
                 this.penso_open = this.fornecedores[i].link_open_ticket;
+              }else if (this.fornecedores[i].id_fornecedor.trim() == '7') {
+                this.wisetag_open = this.fornecedores[i].link_open_ticket;
               };
             };
             
@@ -2464,6 +2998,7 @@
             this.projuris = [];
             this.nekit = [];
             this.penso = [];
+            this.wisetag = [];
 
             for (let i = 0; i < this.tickets.length; i++) {
               if (this.tickets[i].id_fornecedor.trim() == '1') { //totvs
@@ -2483,6 +3018,9 @@
               };
               if (this.tickets[i].id_fornecedor.trim() == '6') { //penso
                 this.penso.push(this.tickets[i]);
+              };
+              if (this.tickets[i].id_fornecedor.trim() == '7') { //wisetag
+                this.wisetag.push(this.tickets[i]);
               };
             };
           };
