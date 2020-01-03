@@ -137,7 +137,7 @@ async function existePostgreSql(table, whereFields, whereValues) {
     existePostgreSql('gmud', ["num_gmud","num_chamado"], ["M1905-02270","I1903-00050"])
   */
   const where = await whereObjectToValue(whereFields,whereValues);
-  const query = `select * from ${table} where ${where}`;
+  let query = `select * from ${table} where ${where}`;
 
   try {
 
@@ -294,10 +294,10 @@ async function localUpdateTable(table, fields, values, whereField, whereValue){
       };
     };
     const whereConditions = await whereObjectToValue(whereField,whereValue);
-
+    let query = ''
     try {
-      //const query = `UPDATE ${table} SET ${updateFields} where ${whereField} = '${whereValue}'`;
-      const query = `UPDATE ${table} SET ${updateFields} where ${whereConditions}`;
+      //query = `UPDATE ${table} SET ${updateFields} where ${whereField} = '${whereValue}'`;
+      query = `UPDATE ${table} SET ${updateFields} where ${whereConditions}`;
       
       const resultUpdate = await client.query(query);
       const updatedCount = JSON.stringify(resultUpdate.rowCount); //quantidade de itens atualizados
@@ -349,11 +349,19 @@ module.exports = {
   client,
   topDeskAPI,
 
-  getTableFieldValue: async function(table, data, create){
-    
+  getTableFieldValue: async function(table, dataReceived, create){
+    let data = dataReceived
+    let actions = [];    
     let chamadoData = '', activityData = '';
+    
     if (table == 'chamado') {
-      if (data !== null && data !== undefined) {
+      
+      if (data !== null && data !== undefined) {        
+        if (dataReceived[0].actions !== null && dataReceived[0].actions !== undefined) {
+          actions[0] = dataReceived[0].actions
+          data[0] = dataReceived[0].chamadoData
+        };
+        
         for (let i = 0; i < data.length; i++) {
           
           var link = ''
@@ -370,9 +378,35 @@ module.exports = {
             var link_chamado = link + newId;
 
             var originalRequest = data[i].request;
-            var originalRequestSpaces = originalRequest.substring(originalRequest.indexOf("Descrição")); //retira tudo que está antes da palavra Descrição
-            var texto_abertura = originalRequestSpaces.replace(/\n\n\n/g, '\n\n').replace(/'/g, ''); //substitui 3 quebras de linha por 2 e remove'
+            var originalRequestSpaces = originalRequest.substring(originalRequest.indexOf("Descrição"));  //retira tudo que está antes da palavra Descrição
+            var texto_abertura = originalRequestSpaces.replace(/\n\n\n/g, '\n\n').replace(/'/g, '');      //substitui 3 quebras de linha por 2 e remove'
+            var texto_ult_retorno = '';
+            
+            if (actions[i] !== null && actions[i] !== undefined) {
+              let operator = false, caller = false;
+              for (let ix = 0; ix < actions[i].length; ix++) {
+                if (actions[i][ix].memoText !== null && actions[i][ix].memoText !== undefined) {
+                  if ((actions[i][ix].person !== null && actions[i][ix].person !== undefined) ||
+                      (actions[i][ix].operator !== null && actions[i][ix].operator !== undefined)) {
 
+                    if ((actions[i][ix].operator !== null && actions[i][ix].operator !== undefined) && operator == false) {
+                      texto_ult_retorno += actions[i][ix].memoText.replace(/<br\/>/g,'\n').replace(/\n\n\n/g, '\n\n').replace(/'/g, ''); //substitui 3 quebras de linha por 2 e remove'
+                      texto_ult_retorno = 'operator:' + texto_ult_retorno;
+                      operator = true
+                    };
+                    if ((actions[i][ix].person !== null && actions[i][ix].person !== undefined) && person == false) {
+                    texto_ult_retorno += actions[i][ix].memoText.replace(/<br\/>/g,'\n').replace(/\n\n\n/g, '\n\n').replace(/'/g, ''); //substitui 3 quebras de linha por 2 e remove'
+                    texto_ult_retorno = 'caller:' + texto_ult_retorno;
+                    caller = true;
+                  };
+                  if (caller && person) {
+                    break;                          
+                  };
+                  };
+                }; 
+              };
+            };
+            
             var num_chamado = data[i].number.replace(/[\\\\]/g, '/');
             var id_solicitante = data[i].caller.id;
 
@@ -441,6 +475,7 @@ module.exports = {
             titulo,
             categoria,
             texto_abertura,
+            texto_ult_retorno,
             link_chamado,
             dt_encerramento,
             feedback_rating,
@@ -692,6 +727,7 @@ module.exports = {
 
     try {
       const dur = newDataTopDesk.dt_ult_retorno.trim(); 
+      
       var yyyy = dur.substr(0, 4);
       var mm = dur.substr(5, 2);
       var dd = dur.substr(8, 2);
@@ -738,10 +774,11 @@ module.exports = {
         if (update) {
           const resUpdateChamado = await this.updateTable('chamado',
             ['status','titulo','categoria','id_solicitante','id_operator','operator','tp_operator','dt_ult_retorno','dt_encerramento',
-            'feedback_message','feedback_rating'],
+            'feedback_message','feedback_rating','texto_ult_retorno'],
             [status,newDataTopDesk.titulo,newDataTopDesk.categoria,newDataTopDesk.id_solicitante,newDataTopDesk.id_operator,newDataTopDesk.operator,
             newDataTopDesk.tp_operator,newDataTopDesk.dt_ult_retorno,newDataTopDesk.dt_encerramento == null || newDataTopDesk.dt_encerramento == undefined ? '-infinity' : newDataTopDesk.dt_encerramento,
-            newDataTopDesk.feedback_message,newDataTopDesk.feedback_rating == null || newDataTopDesk.feedback_rating == undefined ? '' : newDataTopDesk.feedback_rating], 
+            newDataTopDesk.feedback_message,newDataTopDesk.feedback_rating == null || newDataTopDesk.feedback_rating == undefined ? '' : newDataTopDesk.feedback_rating, 
+            newDataTopDesk.texto_ult_retorno], 
             ['num_chamado'], [newDataTopDesk.num_chamado]);
               
           if (resUpdateChamado !== true) {
@@ -752,7 +789,7 @@ module.exports = {
       };
     } catch (error) {
       this.erro_message = `Erro 096 - ${dadosDB.num_chamado} : ${error}`;
-      console.log(dadosDB);
+      //console.log(dadosDB);
       
       console.log(this.erro_message);
       return this.erro_message;
@@ -798,7 +835,7 @@ module.exports = {
 
       if (data.table == 'chamado') {
         fields += 'chamado.num_chamado,chamado.link_chamado,chamado.id_chamado, chamado.id_solicitante,';
-        fields += 'chamado.fornecedor,chamado.gmud,chamado.texto_abertura, chamado.id_operator, chamado.operator' ;
+        fields += 'chamado.fornecedor,chamado.gmud,chamado.texto_abertura,chamado.texto_ult_retorno,chamado.id_operator,chamado.operator' ;
 
         toChar += `, TO_CHAR(dt_ult_retorno, 'DD/MM/YYYY') as f_dt_ult_retorno`;
 
@@ -906,7 +943,7 @@ module.exports = {
       };
     }else if(chamado !== '0'){
       //ler somente num_chamado encaminhado  
-      chamado_value = chamado.replace('+','/');
+      chamado_value = chamado.replace('+','/').trim();
       data = {
         table: 'chamado',
         closed: true,
@@ -927,7 +964,7 @@ module.exports = {
     };
     let resData = '', itarator = 0;
     try {
-      resData = await this.readAllData(data);      
+      resData = await this.readAllData(data);          
 
       const user = operator_login == 'automatic-sync' ? 'automatic-sync' : resData[0] ? resData[0].o_login : 'vazio';
 
@@ -944,6 +981,7 @@ module.exports = {
       }else if (resData.indexOf('Erro') == 0) {
         return resData;
       }else{
+        
         for (let i = 0; i < resData.length; i++) {
           itarator = i;
           //for para verificar se algum chamado do operador tem GMUD para ser atualizada
@@ -980,6 +1018,7 @@ module.exports = {
     //*============================================ CHAMADO ===============================================
           let resChamado = '', activity = false;
           if (resData[i].num_chamado.trim().length == 14) {
+            
             resChamado = await topDeskAPI.buscaChamadoTopDesk(resData[i].id_chamado.trim(),'id'); 
           }else if (resData[i].num_chamado.trim().length == 11) {
             resChamado = await topDeskAPI.buscaChamadoTopDesk(resData[i].num_chamado.trim(),'number');
@@ -990,14 +1029,21 @@ module.exports = {
           if (resChamado == null || resChamado == undefined) {
             //verifiquei que eu tinha gravado um chamado que era de teste e ele foi deletado do top desk
             //portanto se aqui eu retorno null ele deve ter sido excluído no topdesk vou alterar o status e dar um contiue
+
             console.log(`Erro 062: Chamado ${resData[i].num_chamado} provavelmente excluído do TopDesk!`);
 
             const updateRemovido = await this.updateTable('chamado',['status',],['Removido'],['num_chamado'], [resData[i].num_chamado]);
             continue;
+          }else if (resChamado == 524) {
+            //524 - timeout
+            this.erro_message = `Erro 104 - TopDesk Timeout!`;
+            console.log(this.erro_message);
+            return this.erro_message;
           };
+          console.log('passei', resChamado);
+          
           
           let chamadoData = '';
-
           if (activity) {
             chamadoData = await this.getTableFieldValue('activity',resChamado);
           }else{
@@ -1037,6 +1083,7 @@ module.exports = {
               let chamadoPartialData = await this.getTableFieldValue('chamado',[resTopdesk],true);
             };
           };
+          
           const incidente = await this.alteraChamadoDiferenteTopdeskDB(resData[i],chamadoData,diferente);
           if (incidente !== true) {
             continue;
@@ -1068,7 +1115,7 @@ module.exports = {
     const fieldsObject = resReadObject.field;
     const valuesObject = resReadObject.value;
 
-    const query = `INSERT INTO ${table} ${fieldsObject} ${valuesObject};`
+    let query = `INSERT INTO ${table} ${fieldsObject} ${valuesObject};`
 
     //TO CREATE CHAMADO
     if (table == 'chamado') {      
@@ -1100,7 +1147,7 @@ module.exports = {
     const fieldsObject = resReadObject.field;
     const valuesObject = resReadObject.value;
     
-    const query = `INSERT INTO ${table} ${fieldsObject} ${valuesObject};`
+    let query = `INSERT INTO ${table} ${fieldsObject} ${valuesObject};`
     
     if (table == 'ticket') {
       if (fieldValue.status == 'Fechado' && (fieldValue.dt_encerramento == null || fieldValue.dt_encerramento == undefined )) {
@@ -1196,7 +1243,7 @@ module.exports = {
     }else{
       params = `(id_firebase,login) values('${id_firebase}','${login}')`;
     };
-    const query = `insert into firebaseuser ${params}`;
+    let query = `insert into firebaseuser ${params}`;
     try {
       const resCreateUser = await client.query(query);
       //if rowCount = 1 then we had success
@@ -1304,7 +1351,7 @@ module.exports = {
 
     const part1 = `delete from ticket where num_ticket = '${ticket.num_ticket}' `;
     const part2 = `and num_chamado = '${ticket.num_chamado}' and id_fornecedor = '${ticket.id_fornecedor}'`;
-    const query = part1 + part2;
+    let query = part1 + part2;
 
     try {
       const resultDeleteTicket = await client.query(query);

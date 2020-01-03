@@ -26,7 +26,7 @@ getChamadosTopDesk();
 getActivities();
 
 async function getChamadosTopDesk() {
-  //ler os 70 últimos chamados a cada 3 minutos
+  //ler os 50 últimos chamados a cada 3 minutos
   try {
     let topdesk = await databasePostgreSql.topDeskAPI.readLastsTopDesk(50);
     try {
@@ -36,7 +36,7 @@ async function getChamadosTopDesk() {
     } catch (error) {
       erro_message = `Erro 036: ${error}`;
       console.log(erro_message);
-      return erro_message;  
+      return erro_message;
     };
   } catch (error) {
     erro_message = `Erro 038: ${error}`;

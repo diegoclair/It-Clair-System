@@ -73,6 +73,16 @@
                 <td style="display: none;"></td>
                 <td @click.stop="tableExpand(chamado.num_chamado)" class="td3">{{ chamado.f_dt_ult_retorno }}</td>
                 <td class="td4">
+                  <button
+                  @click="saveLastActions(chamado.num_chamado, chamado.titulo, chamado.texto_ult_retorno,chamado.f_dt_ult_retorno.trim(),chamado.p_first_name.trim())"
+                  type="button"
+                  class="far fa-file-alt"
+                  href
+                  style="margin-right: 12px; font-size: 16px;"
+                  data-toggle="modal"
+                  data-target="#modalUltimoRetorno"
+                  >
+                  </button>
                   <button 
                     v-if="chamado.num_chamado.trim().length !== 14"
                     @click="saveModalStatusId(chamado.num_chamado, chamado.titulo, chamado.id_chamado)"
@@ -96,9 +106,10 @@
                   >                  
                   {{ chamado.status }}
                   </button>
-                  <button v-if="chamado.status == 'Em aberto' || 
-                                chamado.status == 'Aguardando solicitante' &&
-                                chamado.f_dt_ult_retorno < todayDate" 
+                  <button v-if="(chamado.status !== 'Resolvido' || 
+                                chamado.status !== 'Fechado') &&
+                                chamado.f_dt_ult_retorno.trim() !== todayDateBR.trim().toString() || 
+                                chamado.status == 'Alterado pelo solicitante'" 
                     @click="saveModalStatusId(chamado.num_chamado, chamado.titulo, chamado.id_chamado,{nome_solicitante: chamado.p_first_name.trim(),nome_operador: chamado.o_first_name.trim(), status: chamado.status})"
     
                     data-toggle="modal"
@@ -251,6 +262,40 @@
         </div>
       </div>
       <!-- End Modal Cobrar retorno -->
+
+      <!-- Modal Ultimo retorno -->
+      <div 
+        class="modal fade textColorModal"
+        id="modalUltimoRetorno"
+        tabindex="-1"
+        role="dialog"
+        aria-labelledby="modalUltimoRetornoTitle"
+        aria-hidden="true"
+        >
+        <div class="modal-dialog modal-dialog-centered" role="document" style="min-width: 850px;">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="modalUltimoRetornoLongTitle">{{ dataChamadoNumber }} - {{dataTitulo}} </h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <textarea 
+                class="form-control"
+                id="UltimoRetorno" cols="1" rows="7" :value=lastMessage
+                style="resize: both; width: 100%;"
+                ></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Ok</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- End Modal Ultimo retorno -->
 
     </div>
 
@@ -1038,7 +1083,7 @@
                               <a @click="goToLink(`${penso.link_ticket !== '' 
                                                   && penso.link_ticket !== null 
                                                   && penso.link_ticket !== undefined ? 
-                                                  penso.link_ticket.trim() + `/` + penso.num_ticket.trim() :
+                                                  penso.link_ticket.trim() + `=` + penso.num_ticket.trim() :
                                                   penso.link_open_ticket.trim()}`)"
                               >{{penso.num_ticket}}</a>  - {{penso.titulo}}</h6> 
                           </div>
@@ -1557,6 +1602,7 @@
     data() {
       return {
         todayDate: new Date().getFullYear() + '-' + ('0' + (new Date().getMonth() + 1)).slice(-2) + '-' + ('0' + new Date().getDate()).slice(-2),
+        todayDateBR: ('0' + new Date().getDate()).slice(-2) + '/' + ('0' + (new Date().getMonth() + 1)).slice(-2) + '/' + new Date().getFullYear(),
         inputGmudValue: '',
         status: '',
         search: '',
@@ -1585,6 +1631,7 @@
         loadChangeStatusFornecedor: false,
         LoadIncluiExcluiGmud: false,
         mensagem:'',
+        lastMessage: '',
 
         chamados: [],
         dataChamadoMoreInfo: [],
@@ -1658,7 +1705,7 @@
         /* toda vez que eu alterar o this.chamadoMoreInfo na function getNewChamado ele vai
           chamar essa função chamadoSelected, pois o chamadoMoreInfo é um item da função 
           que foi modificado, assim que funciona o computed */
-        this.dataChamadoMoreInfo = [];
+        this.dataChamadoMoreInfo = [];        
 
          for (let i = 0; i < this.chamados.length; i++) {
 
@@ -1686,7 +1733,7 @@
 
           this.inputGmudValue = ''; //limpar o campo em que digita a gmud para ser incluida
 
-          this.setTrueGmud();
+          this.setTrueGmudStorage();
         };
 
         if (this.incluidoExcluidoGmud == 'delete') {
@@ -1700,7 +1747,7 @@
           $('#1-gmud').removeClass('active show');
           $('#1-tab-gmud').removeClass('active show');
 
-          this.removeTrueGmud();
+          this.removeTrueGmudStorage();
         };
 
         this.dataGmudMoreInfo = [];
@@ -1730,7 +1777,7 @@
           $('#1-tab-fornecedor-totvs').addClass('active show');
 
           //quando incluir um ticket, garantir que o fornecedor seja true (antes de sincronizar table chamado)
-          this.setTrueFornecedor();
+          this.setTrueFornecedorStorage();
 
         };
         if (this.incluidoExcluidoTotvs == 'delete') {
@@ -1741,7 +1788,7 @@
           $('#1-tab-fornecedor-totvs').removeClass('active show');
 
           //quando deletar o ultimo ticket, garantir que o fornecedor seja false (antes de sincronizar table chamado)
-          this.removeTrueFornecedor('1');
+          this.removeTrueFornecedorStorage('1');
         };
         this.incluidoExcluidoTotvs = false;
 
@@ -1772,7 +1819,7 @@
           $('#2-tab-fornecedor-uBrasil').addClass('active show');
 
           //quando incluir um ticket, garantir que o fornecedor seja true (antes de sincronizar table chamado)
-          this.setTrueFornecedor();
+          this.setTrueFornecedorStorage();
         };
         if (this.incluidoExcluidoUBrasil == 'delete') {
           $('#0-fornecedor').addClass('active show');
@@ -1782,7 +1829,7 @@
           $('#2-tab-fornecedor-uBrasil').removeClass('active show');
 
           //quando deletar o ultimo ticket, garantir que o fornecedor seja false (antes de sincronizar table chamado)
-          this.removeTrueFornecedor('2');
+          this.removeTrueFornecedorStorage('2');
         };
         this.incluidoExcluidoUBrasil = false;
 
@@ -1813,7 +1860,7 @@
           $('#3-tab-fornecedor-plusoft').addClass('active show');
 
           //quando incluir um ticket, garantir que o fornecedor seja true (antes de sincronizar table chamado)
-          this.setTrueFornecedor();
+          this.setTrueFornecedorStorage();
         };
         if (this.incluidoExcluidoPlusoft == 'delete') {
           $('#0-fornecedor').addClass('active show');
@@ -1823,7 +1870,7 @@
           $('#3-tab-fornecedor-plusoft').removeClass('active show');
 
           //quando deletar o ultimo ticket, garantir que o fornecedor seja false (antes de sincronizar table chamado)
-          this.removeTrueFornecedor('3');
+          this.removeTrueFornecedorStorage('3');
         };
         this.incluidoExcluidoPlusoft = false;
 
@@ -1854,7 +1901,7 @@
           $('#4-tab-fornecedor-projuris').addClass('active show');
 
           //quando incluir um ticket, garantir que o fornecedor seja true (antes de sincronizar table chamado)
-          this.setTrueFornecedor();
+          this.setTrueFornecedorStorage();
         };
         if (this.incluidoExcluidoProjuris == 'delete') {
           $('#0-fornecedor').addClass('active show');
@@ -1864,7 +1911,7 @@
           $('#4-tab-fornecedor-projuris').removeClass('active show');
 
           //quando deletar o ultimo ticket, garantir que o fornecedor seja false (antes de sincronizar table chamado)
-          this.removeTrueFornecedor('4');
+          this.removeTrueFornecedorStorage('4');
         };
         this.incluidoExcluidoProjuris = false;
 
@@ -1895,7 +1942,7 @@
           $('#5-tab-fornecedor-nekit').addClass('active show');
 
           //quando incluir um ticket, garantir que o fornecedor seja true (antes de sincronizar table chamado)
-          this.setTrueFornecedor();
+          this.setTrueFornecedorStorage();
         };
         if (this.incluidoExcluidoNekit == 'delete') {
           $('#0-fornecedor').addClass('active show');
@@ -1905,7 +1952,7 @@
           $('#5-tab-fornecedor-nekit').removeClass('active show');
 
           //quando deletar o ultimo ticket, garantir que o fornecedor seja false (antes de sincronizar table chamado)
-          this.removeTrueFornecedor('5');
+          this.removeTrueFornecedorStorage('5');
         };
         this.incluidoExcluidoNekit = false;
 
@@ -1936,7 +1983,7 @@
           $('#6-tab-fornecedor-penso').addClass('active show');
 
           //quando incluir um ticket, garantir que o fornecedor seja true (antes de sincronizar table chamado)
-          this.setTrueFornecedor();
+          this.setTrueFornecedorStorage();
         };
         if (this.incluidoExcluidoPenso == 'delete') {
           $('#0-fornecedor').addClass('active show');
@@ -1946,7 +1993,7 @@
           $('#6-tab-fornecedor-penso').removeClass('active show');
 
           //quando deletar o ultimo ticket, garantir que o fornecedor seja false (antes de sincronizar table chamado)
-          this.removeTrueFornecedor('6');
+          this.removeTrueFornecedorStorage('6');
         };
         this.incluidoExcluidoPenso = false;
 
@@ -1977,7 +2024,7 @@
           $('#7-tab-fornecedor-wisetag').addClass('active show');
 
           //quando incluir um ticket, garantir que o fornecedor seja true (antes de sincronizar table chamado)
-          this.setTrueFornecedor();
+          this.setTrueFornecedorStorage();
         };
         if (this.incluidoExcluidoWisetag == 'delete') {
           $('#0-fornecedor').addClass('active show');
@@ -1987,7 +2034,7 @@
           $('#7-tab-fornecedor-wisetag').removeClass('active show');
 
           //quando deletar o ultimo ticket, garantir que o fornecedor seja false (antes de sincronizar table chamado)
-          this.removeTrueFornecedor('7');
+          this.removeTrueFornecedorStorage('7');
         };
         this.incluidoExcluidoWisetag = false;
 
@@ -2286,7 +2333,7 @@
         const id_firebase = this.$store.getters.userLoggedId;
         localStorage.removeItem(`chamados-${id_firebase}`);
       },
-      async setTrueFornecedor(){
+      async setTrueFornecedorStorage(){
         let storage = await this.getStorage();
         for (let i = 0; i < storage.length; i++) {
           if (storage[i].num_chamado.trim() == this.chamadoMoreInfo.trim()) {
@@ -2304,7 +2351,7 @@
         await this.removeStorage();
         await this.setStorage(storage);
       },
-      async removeTrueFornecedor(id_fornecedor){
+      async removeTrueFornecedorStorage(id_fornecedor){
         let existeOutroTicket = false;
 
         if (id_fornecedor.trim() == '1') {
@@ -2378,7 +2425,7 @@
           await this.setStorage(storage);
         };          
       },
-      async setTrueGmud(){
+      async setTrueGmudStorage(){
         let storage = await this.getStorage();
         for (let i = 0; i < storage.length; i++) {
           if (storage[i].num_chamado.trim() == this.chamadoMoreInfo.trim()) {
@@ -2396,7 +2443,7 @@
         await this.removeStorage();
         await this.setStorage(storage);
       },
-      async removeTrueGmud(){
+      async removeTrueGmudStorage(){
 
         let existeOutraGmud = false;
 
@@ -2600,7 +2647,7 @@
               //só altero essa variável se não der erro, daí ele vai chamar os dados no server, pois se não deu erro, será incluído..
               //o computed gmudChamadoSelected será chamado pois this.incluidoExcluidoGmud está lá, e lá chamará gmudFromServer 
               this.incluidoExcluidoGmud = 'create';
-              await this.setTrueGmud()
+              await this.setTrueGmudStorage()
               this.notification('A mudança foi incluída com sucesso', 'success');
             };
 
@@ -2747,6 +2794,11 @@
       goToLink(url) {
         window.open(url, "_blank");
       },
+      saveLastActions(num_chamado, titulo, message,data,solicitante){
+        this.lastMessage = `${data} - ${solicitante}:\n${message}`;
+        this.dataChamadoNumber = num_chamado;
+        this.dataTitulo = titulo;
+      },
       saveModalStatusId(numChamado, titulo, id_chamado, dadosRetornoMensagem) {
         $('#selectedOptionStatus').val('Selecione um status...');
         this.dataChamadoNumber = numChamado.trim();
@@ -2760,9 +2812,10 @@
           let saudacao = hour < 12 ? 'bom dia' : hour < 18 ? 'boa tarde' : 'boa noite'
           if (dadosRetornoMensagem.status == 'Em aberto') {
             this.mensagem = `Olá ${dadosRetornoMensagem.nome_solicitante}, ${saudacao}! \n\nRecebemos sua solicitação e estamos analisando. \nLogo retornaremos. \n\nAt.te,\n${dadosRetornoMensagem.nome_operador}`
-          }
-          if (dadosRetornoMensagem.status == 'Aguardando solicitante') {
+          }else if (dadosRetornoMensagem.status == 'Aguardando solicitante') {
             this.mensagem = `Olá ${dadosRetornoMensagem.nome_solicitante}, ${saudacao}! \n\nAlgum Retorno? \n\nAt.te,\n${dadosRetornoMensagem.nome_operador}`
+          }else {
+            this.mensagem = `Olá ${dadosRetornoMensagem.nome_solicitante}, ${saudacao}! \n\n\n\nAt.te,\n${dadosRetornoMensagem.nome_operador}`
           }
         }
       },
@@ -2864,7 +2917,6 @@
         }
         try {
           const sent = await ChamadosService.sentMessageToTopDesk(data);
-
           if (data.status == 'Em aberto') {
             this.dataStatus = 'Em andamento';
             try {
@@ -2880,6 +2932,26 @@
           this.LoadUpdateStatus = false; 
 
           if (sent == true) {
+
+            let storage = await this.getStorage();
+            
+            for (let i = 0; i < storage.length; i++) {
+              if (storage[i].num_chamado.trim() == data.num_chamado.trim()) {
+                storage[i].f_dt_ult_retorno = this.todayDateBR;
+                break;
+              };
+            };
+  
+            for (let i = 0; i < this.chamados.length; i++) {
+              if (this.chamados[i].num_chamado.trim() == data.num_chamado.trim()) {
+                this.chamados[i].f_dt_ult_retorno = this.todayDateBR;
+                break;
+              };
+            };
+
+            await this.removeStorage();
+            await this.setStorage(storage);
+
             this.notification('Mensagem enviada com sucesso','success','Atualizado com sucesso');
             $('#modalCobrarRetorno').modal('hide'); 
           }else if (sent.indexOf('Erro') == 0) {

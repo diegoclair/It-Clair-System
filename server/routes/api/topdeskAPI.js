@@ -53,25 +53,24 @@ module.exports = {
       await getParameters();
 
       if(username == null || username == undefined){
-          //se der erro de conexão ele chama esse cara
-          return false;
+        //se der erro de conexão ele chama esse cara
+        return false;
       };
 
       const urlTopDesk = `${urlIncidents}?page_size=${numberOfTickets}`;
       try {
-
-          const res = await axios.get(urlTopDesk, {
-              auth: { 
-                  username: username.trim(), 
-                  password: password.trim()
-              }
-          });
-          console.log('Qtd: ' + numberOfTickets);
-          return res.data
+        const res = await axios.get(urlTopDesk, {
+            auth: { 
+                username: username.trim(), 
+                password: password.trim()
+            }
+        });
+        console.log('Qtd: ' + numberOfTickets);
+        return res.data
       } catch (error) {
-          this.erro_message = `Erro 029: ${error}`
-          console.log(this.erro_message);
-          return this.erro_message;
+        this.erro_message = `Erro 029: ${error}`
+        console.log(this.erro_message);
+        return this.erro_message;
       }
   },
   buscaPessoaTopDesk: async function (type, id) { 
@@ -176,41 +175,93 @@ module.exports = {
             };
             return data;
           } catch (error) {
-            this.erro_message = `Erro 089: ${error}`
-            console.log(this.erro_message);
-            return null; //retorno null para dar continue no for do sync
+            if (error.response.status == 524) {
+              this.erro_message = `Erro 089 - STATUS: ${error}`
+              console.log(this.erro_message);
+              return error.response.status;
+            }else{
+              this.erro_message = `Erro 089: ${error}`
+              console.log(this.erro_message);
+              return null; //retorno null para dar continue no for do sync
+            }
           };
         } catch (error) {
-          this.erro_message = `Erro 086: ${error}`
-          console.log(this.erro_message);
-          return null;
+          if (error.response.status == 524) {
+            this.erro_message = `Erro 086 - STATUS: ${error}`
+            console.log(this.erro_message);
+            return error.response.status;
+          }else {
+            this.erro_message = `Erro 086: ${error}`
+            console.log(this.erro_message);
+            return null;
+          }
         };
       } catch (error) {
-        this.erro_message = `Erro 085: ${error}`
-        console.log(this.erro_message);
-        return null; //retorno null para dar continue no for do sync
-      };
+        if (error.response.status == 524) {
+          this.erro_message = `Erro 085 - STATUS: ${error}`
+          console.log(this.erro_message);
+          return error.response.status;
+        }else{
+          this.erro_message = `Erro 085: ${error}`
+          console.log(this.erro_message);
+          return null; //retorno null para dar continue no for do sync
+        };
+      }
 
     }else {
       if (type !== 'number' && type !== 'id') {
-        urlTopDesk = `https://unimedfesp.topdesk.net${type}`
+        urlTopDesk = `https://unimedfesp.topdesk.net${type}` //partial incident
       }else {
         urlTopDesk = `${urlIncidents}/${type}/${chamadoNumberOrId}`;
       };
+      let res = '', resActions = '';
       try {
-        const res = await axios.get(urlTopDesk, {
+        res = await axios.get(urlTopDesk, {
           auth: { 
             username: username.trim(), 
             password: password.trim()  
           }
         });
-        return res.data;
+        console.log('opa');
+        
+        const urlActions = `https://unimedfesp.topdesk.net${res.data.action}?page_size=20`
+        try {
+          resActions = await axios.get(urlActions, {
+            auth: { 
+              username: username.trim(), 
+              password: password.trim()  
+            }
+          }); 
+          console.log('retr data');
 
-      } catch (error) {
+          const data = {
+            chamadoData: res.data,
+            actions: resActions.data
+          };      
+          return data;
+          
+        } catch (error) {
+          if (error.response.status == 524) {
+            this.erro_message = `Erro 103 - STATUS: ${error}`
+            console.log(this.erro_message);
+            return error.response.status;
+          }
+
+          this.erro_message = `Erro 103: ${error}`
+          console.log(this.erro_message);
+          return null;
+          
+        };        
+      } catch (error) {                
+        if (error.response.status == 524) {
+          this.erro_message = `Erro 030 - STATUS: ${error}`
+          console.log(this.erro_message);
+          return error.response.status;
+        }
         this.erro_message = `Erro 030: ${error}`
         console.log(this.erro_message);
         return null; //retorno null para dar continue no for do sync
-        //return this.erro_message;
+        
       };
     };
   },
