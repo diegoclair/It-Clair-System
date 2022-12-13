@@ -16,7 +16,7 @@
     "cors": "^2.8.5",
     "css-loader": "^3.4.0",
     "deepmerge": "^4.2.2",
-    "express": "^4.17.1",
+    "express": "^4.17.3",
     "express-vue": "^5.14.1",
     "fibers": "^4.0.1",
     "firebase": "^6.6.1",
